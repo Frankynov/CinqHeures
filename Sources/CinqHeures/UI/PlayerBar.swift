@@ -347,8 +347,9 @@ private struct SlowServerNote: View {
     var body: some View {
         HStack(spacing: 6) {
             ProgressView().controlSize(.mini)
+            // Short, so the timer still shows in a narrow bar.
             TimelineView(.periodic(from: .now, by: 1)) { context in
-                Text("Préparation du passage… \(clock(context.date.timeIntervalSince(player.slowSince ?? context.date)))")
+                Text("Préparation… \(clock(context.date.timeIntervalSince(player.slowSince ?? context.date)))")
                     .monospacedDigit()
             }
             Button { showsExplanation.toggle() } label: {
@@ -356,27 +357,58 @@ private struct SlowServerNote: View {
             }
             .labelStyle(.iconOnly)
             .buttonStyle(.borderless)
+            .help("Pourquoi c'est long ?")
             .popover(isPresented: $showsExplanation, arrowEdge: .top) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Le serveur de 5heures.be est lent").font(.headline)
-                    Text("""
-                         Ce fichier audio n'a pas été demandé récemment : le serveur du site met parfois \
-                         une à deux minutes à atteindre ce passage la première fois. Ensuite tout est \
-                         instantané, y compris les sauts de 15 secondes.
-
-                         Ce n'est pas un défaut de l'app : le même délai se voit dans le navigateur, où le \
-                         lecteur du site finit par repartir du début. Ici la lecture démarre dès que le \
-                         serveur répond.
-                         """)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Button("Réessayer") { player.retry(); showsExplanation = false }
-                }
-                .padding(16)
-                .frame(width: 340)
+                SlowServerExplanation(retry: { player.retry(); showsExplanation = false })
             }
         }
         .font(.caption)
         .foregroundStyle(.orange)
         .lineLimit(1)
+    }
+}
+
+/// What the "Préparation…" wait is about. Its own colours and line limits, not the orange caption
+/// of the note it opens from (which made it orange on glass and cut it to one line), so it reads in
+/// light and dark mode alike.
+private struct SlowServerExplanation: View {
+    let retry: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: "hourglass")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(brandOrange)
+                Text("Le serveur de 5heures.be est lent")
+                    .font(.headline)
+            }
+            Text("""
+                 Ce fichier audio n'a pas été demandé récemment : le serveur du site met parfois une à \
+                 deux minutes à atteindre ce passage la première fois. Ensuite tout est instantané, y \
+                 compris les sauts de 15 secondes.
+                 """)
+            Text("""
+                 Ce n'est pas un défaut de l'app : le même délai se voit dans le navigateur, où le lecteur \
+                 du site finit par repartir du début. Ici, la lecture démarre dès que le serveur répond.
+                 """)
+                .foregroundStyle(Color.secondary)
+            HStack {
+                Spacer()
+                Button(action: retry) {
+                    Label("Réessayer", systemImage: "arrow.clockwise")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(brandOrange)
+            }
+        }
+        .font(.callout)
+        // The system's text colours, not `.primary`, which means "the current colour" (the note's orange).
+        .foregroundStyle(Color.primary)
+        .lineLimit(nil)
+        .fixedSize(horizontal: false, vertical: true)
+        .multilineTextAlignment(.leading)
+        .padding(18)
+        .frame(width: 360)
     }
 }

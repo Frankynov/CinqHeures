@@ -10,7 +10,7 @@ cd "$(dirname "$0")"
 
 MODE=${1:-release}
 APP="build/5heures.app"
-APP_VERSION="1.0.1"
+APP_VERSION="1.0.2"
 DEPLOYMENT=15.0
 
 rm -rf "$APP"
