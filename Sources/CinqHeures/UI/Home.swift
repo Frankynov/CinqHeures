@@ -146,6 +146,7 @@ struct HeroView: View {
             }
             .padding(.horizontal, 28).padding(.vertical, 26)
         }
+        .task(id: mention.segment.id) { model.warm(mention.episode, at: mention.segment) }
         .frame(height: 250)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .padding(.horizontal, 28)

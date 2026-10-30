@@ -130,16 +130,20 @@ struct PlayerBar: View {
                     case .loading:
                         HStack(spacing: 6) { ProgressView().controlSize(.mini); Text("Chargement…") }
                             .font(.callout.weight(.semibold))
-                    case .failed(let message):
-                        HStack(spacing: 6) {
-                            Text("Lecture impossible").foregroundStyle(.red)
-                            Button("Réessayer") { player.retry() }.controlSize(.mini).help(message)
-                        }
-                        .font(.callout.weight(.semibold))
+                    case .failed:
+                        Text("Lecture impossible")
+                            .font(.callout.weight(.semibold)).foregroundStyle(.red).lineLimit(1)
                     default:
                         MarqueeText(text: segment?.displayTitle ?? episode.title)
                     }
-                    if player.phase == .ready, player.serverIsSlow {
+                    if case .failed(let message) = player.phase {
+                        Button { player.retry() } label: {
+                            Label("Réessayer", systemImage: "arrow.clockwise")
+                        }
+                        .controlSize(.small)
+                        .help(message)
+                    } else if player.serverIsSlow {
+                        // While the file opens as well as during playback: the wait is the server's.
                         SlowServerNote(player: player)
                     } else if player.phase != .loading {
                         HStack(spacing: 5) {

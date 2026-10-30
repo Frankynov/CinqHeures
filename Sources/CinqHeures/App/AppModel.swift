@@ -204,6 +204,11 @@ final class AppModel {
         player.play(episode, from: segment)
     }
 
+    /// The review someone is looking at, likely to be played next: warm its file on 5heures.be's server.
+    func warm(_ episode: Episode, at segment: Segment? = nil) {
+        player.warm(episode, at: segment)
+    }
+
     func open(_ route: Route) { path.append(route) }
 
     /// Back to the sidebar's own page (a new search, a new sidebar row).

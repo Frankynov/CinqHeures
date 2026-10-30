@@ -10,6 +10,9 @@ struct EpisodePage: View {
     var body: some View {
         if let episode = model.episode(id: id) {
             EpisodeContent(episode: episode, model: model, highlighted: highlight)
+                .task(id: episode.id) {
+                    model.warm(episode, at: episode.segments.first { $0.id == highlight } ?? episode.subjects.first)
+                }
                 .navigationTitle(episode.title)
                 .navigationSubtitle(EpisodeDates.long.string(from: episode.date))
         } else {

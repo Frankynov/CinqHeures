@@ -114,6 +114,14 @@ final class PlayerModel {
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
 
+    /// Gets 5heures.be's server ready for a passage that's likely to be played soon (see `RangeLoader.warm`).
+    /// Its position in the file is estimated from the usual bitrate (128 kb/s) until the file is known.
+    func warm(_ episode: Episode, at segment: Segment?) {
+        guard episode.series.isOnSite, self.episode?.id != episode.id else { return }
+        loader.warm(episode.audioURL, atByte: 0)
+        if let start = segment?.start, start > 30 { loader.warm(episode.audioURL, atByte: Int64(start * 16_000)) }
+    }
+
     func retry() {
         guard let episode else { return }
         load(episode, start: requestedSegment.map { $0.start ?? 0 } ?? currentTime)
@@ -140,7 +148,9 @@ final class PlayerModel {
                                                                        : AVURLAsset(url: episode.audioURL))
                 player.replaceCurrentItem(with: item)
                 do {
-                    try await Self.waitUntilReady(item)
+                    try await waitUntilReady(item)
+                } catch is CancellationError {
+                    return
                 } catch {
                     lastError = error.localizedDescription
                     continue
@@ -156,18 +166,26 @@ final class PlayerModel {
         }
     }
 
-    /// Waits for the file's header to be read. A request that stalls is given up after 15 seconds
-    /// so the caller can ask again, which is what fixes the CDN's occasional 503.
-    private static func waitUntilReady(_ item: AVPlayerItem) async throws {
-        for _ in 0..<300 {
+    /// Waits for the file to open. While the loader says 5heures.be's server is slow, it waits on:
+    /// a file the server hasn't served lately can take a minute or more to start (Conclave took 67 s),
+    /// and giving up at 15 seconds, as this once did, failed just before it arrived. It gives up after
+    /// 15 seconds with nothing happening and no slow server to blame, or after 4 minutes in all.
+    private func waitUntilReady(_ item: AVPlayerItem) async throws {
+        let started = Date()
+        var quietSince = Date()
+        while true {
             try Task.checkCancellation()
             switch item.status {
             case .readyToPlay: return
             case .failed: throw item.error ?? CocoaError(.fileReadUnknown)
-            default: try await Task.sleep(for: .milliseconds(50))
+            default: break
             }
+            if serverIsSlow { quietSince = Date() }
+            if Date().timeIntervalSince(quietSince) > 15 || Date().timeIntervalSince(started) > 240 {
+                throw URLError(.timedOut)
+            }
+            try await Task.sleep(for: .milliseconds(100))
         }
-        throw URLError(.timedOut)
     }
 
     /// Seeks, checks it landed, and only then plays, unless a newer request came in meanwhile.

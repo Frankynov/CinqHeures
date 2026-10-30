@@ -28,6 +28,7 @@ final class RangeLoader: NSObject, AVAssetResourceLoaderDelegate, @unchecked Sen
     /// Requests that have been waiting more than a few seconds. Several run at once, so the server
     /// counts as slow until all of them have answered, not as soon as one does.
     private var slowRequests = Set<UUID>()
+    private var warmed: [String: Date] = [:]
     /// At most this much audio is kept in memory (chunks far from the playhead are dropped first).
     private static let maxChunks = 96      // 48 MB
 
@@ -57,6 +58,25 @@ final class RangeLoader: NSObject, AVAssetResourceLoaderDelegate, @unchecked Sen
     /// Drops the audio held in memory (cache reset, or nothing playing any more).
     func clear() {
         lock.withLock { cache = [:]; length = nil; cachedURL = nil; playheadByte = 0 }
+    }
+
+    /// Asks 5heures.be for a piece of a file in the background, so that it's warm by the time it's
+    /// played: the server takes a minute or two over a file it hasn't served lately, then it's fast.
+    /// The answer isn't kept; each file is warmed at most once every ten minutes.
+    func warm(_ url: URL, atByte offset: Int64) {
+        let key = "\(url.absoluteString)#\(offset / Self.chunk)"
+        let due = lock.withLock { () -> Bool in
+            if let last = warmed[key], Date().timeIntervalSince(last) < 600 { return false }
+            warmed[key] = Date()
+            return true
+        }
+        guard due else { return }
+        let first = offset / Self.chunk * Self.chunk
+        var request = URLRequest(url: url)
+        request.setValue(SiteClient.userAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue("bytes=\(first)-\(first + 64 * 1024 - 1)", forHTTPHeaderField: "Range")
+        request.timeoutInterval = 180
+        session.dataTask(with: request).resume()
     }
 
     /// Tells the loader where playback is, so it reads only a little way ahead.

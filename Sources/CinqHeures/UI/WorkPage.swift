@@ -64,6 +64,7 @@ struct WorkPage: View {
                 .padding(28)
             }
             .pageEdges()
+            .task(id: latest.segment.id) { model.warm(latest.episode, at: latest.segment) }
             .navigationTitle(segment.displayTitle)
             .navigationSubtitle(kind.label)
         } else {
