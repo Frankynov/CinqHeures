@@ -101,6 +101,10 @@ final class AppModel {
     let player = PlayerModel()
     private let client = SiteClient()
     private let feeds = FeedClient.all
+    /// Posters, synopses and directors for Dayez's films, from TMDB through Franky's proxy.
+    private var films = FilmLibrary.load()
+    private let tmdb = TMDBClient()
+    private var filmLookup: Task<Void, Never>?
     private var lastFeedRefresh = Date.distantPast
     private var index = SearchIndex(Catalogue())
     private(set) var discovery = Discovery(Catalogue())
@@ -317,6 +321,59 @@ final class AppModel {
             await refresh(everything: false)
         }
         await refreshFeed()
+        applyFilmInfo()
+        lookUpFilms()
+    }
+
+    // MARK: Film details from TMDB
+
+    /// Dayez's episodes with what TMDB knows about their films (title, poster, synopsis, director).
+    private func applyFilmInfo() {
+        let dayez = catalogue.episodes.filter { $0.series == .dayez }
+        guard !dayez.isEmpty else { return }
+        let enriched = dayez.map(films.enrich)
+        guard enriched.map(\.segments) != dayez.map(\.segments) else { return }
+        catalogue.replaceEpisodes(of: .dayez, with: enriched, at: catalogue.updatedAt ?? Date())
+    }
+
+    /// Looks up, in the background, the films not asked about yet. Paced well under the proxy's limit
+    /// (120 requests a minute; a film takes two to five), and stopped by any error other than "too many":
+    /// films not reached are asked about at the next launch.
+    func lookUpFilms() {
+        guard filmLookup == nil else { return }
+        let pending = catalogue.episodes.filter { $0.series == .dayez }.flatMap { episode in
+            episode.spokenFilms.filter { films.needsLookup(title: $0, date: episode.date) }
+                .map { (title: $0, date: episode.date, hints: episode.summary) }
+        }
+        guard !pending.isEmpty else { return }
+        filmLookup = Task { [tmdb] in
+            var done = 0
+            lookups: for film in pending {
+                for attempt in 0..<2 {
+                    do {
+                        let info = try await tmdb.film(titled: film.title, discussedOn: film.date, hints: film.hints)
+                        films.record(info, title: film.title, date: film.date)
+                        break
+                    } catch SiteError.http(429) where attempt == 0 {
+                        try? await Task.sleep(for: .seconds(65))
+                    } catch {
+                        break lookups
+                    }
+                }
+                done += 1
+                if done % 6 == 0 { finishFilmBatch() }   // posters appear as they come
+                try? await Task.sleep(for: .milliseconds(1500))
+            }
+            finishFilmBatch()
+            filmLookup = nil
+        }
+    }
+
+    private func finishFilmBatch() {
+        try? films.save()
+        applyFilmInfo()
+        try? catalogue.save(to: Catalogue.defaultLocation)
+        rebuildIndex()
     }
 
     /// The music podcast is weekly: one small request when the app starts and whenever it comes
@@ -329,12 +386,13 @@ final class AppModel {
             // One feed being down (Franky's server, say) doesn't keep the other from updating, and an
             // empty answer never wipes what's known.
             guard let episodes = try? await feed.episodes(), !episodes.isEmpty else { continue }
-            catalogue.replaceEpisodes(of: feed.series, with: episodes, at: catalogue.updatedAt ?? Date())
+            catalogue.replaceEpisodes(of: feed.series, with: episodes.map(films.enrich), at: catalogue.updatedAt ?? Date())
             changed = true
         }
         guard changed else { return }
         try? catalogue.save(to: Catalogue.defaultLocation)
         rebuildIndex()
+        lookUpFilms()          // this week's three films
     }
 
     func refresh(everything: Bool) async {

@@ -16,14 +16,32 @@ struct WorkPage: View {
                         PosterImage(url: work.posterURL, corner: 12)
                             .frame(width: 210)
                             .shadow(color: .black.opacity(0.3), radius: 14, y: 8)
+                        // From TMDB, for films that don't come from 5heures.be (Dayez's): the French
+                        // title, the director and a synopsis.
+                        let local = work.mentions.lazy.compactMap(\.segment.localTitle).first
+                        let director = work.mentions.lazy.compactMap(\.segment.director).first
+                        let overview = work.mentions.lazy.compactMap(\.segment.overview).first
                         VStack(alignment: .leading, spacing: 10) {
                             Text(segment.displayTitle).font(.largeTitle.weight(.bold))
+                            if let local, local != segment.displayTitle {
+                                Text(local).font(.title3).foregroundStyle(.secondary)
+                            }
                             HStack(spacing: 10) {
                                 Label(kind.label, systemImage: kind.symbol)
                                 if let year = segment.year { Text(String(year)) }
+                                if let director { Text("de \(director)") }
                                 Text("\(work.mentions.count) passage\(work.mentions.count > 1 ? "s" : "")")
                             }
                             .foregroundStyle(.secondary)
+                            if let overview {
+                                Text(overview)
+                                    .font(.callout)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(6)
+                                    .frame(maxWidth: 620, alignment: .leading)
+                                    .textSelection(.enabled)
+                                Text("Synopsis et affiche : TMDB").font(.caption2).foregroundStyle(.tertiary)
+                            }
                             if let best = work.mentions.compactMap(\.segment.stars).max() {
                                 Text(Segment.starString(best)).font(.title3).foregroundStyle(brandOrange)
                             }
@@ -68,7 +86,12 @@ private struct PassageRow: View {
                     SeriesBadge(series: mention.episode.series)
                 }
                 HStack(spacing: 8) {
-                    Text(clock(segment.start ?? 0)).monospacedDigit()
+                    if let start = segment.start {
+                        Text(clock(start)).monospacedDigit()
+                    } else {
+                        // Dayez's episodes have no per-film timecode: the whole (short) episode plays.
+                        Text("Épisode entier" + (mention.episode.duration.map { " · \(Int($0 / 60)) min" } ?? ""))
+                    }
                     if let stars = segment.stars { Text(Segment.starString(stars)).foregroundStyle(brandOrange) }
                     if let verdict = segment.spokenVerdict { Text(verdict) }
                 }

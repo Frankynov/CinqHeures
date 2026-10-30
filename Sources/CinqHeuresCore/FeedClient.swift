@@ -99,6 +99,9 @@ public struct FeedClient: Sendable {
 
         return pieces
             .map { $0.trimmingCharacters(in: CharacterSet(charactersIn: " \"«»“”',.").union(.whitespacesAndNewlines)) }
+            // Descriptors after the title: "The end avec Tilda Swinton", "Mary Anning, film d'animation".
+            .map { $0.replacingOccurrences(of: #"(,\s*film d['’]animation|\s+avec\s+.+)$"#, with: "",
+                                            options: [.regularExpression, .caseInsensitive]) }
             // A one-film title may end with its director, "The Death of Robin Hood de Michael Sarnoski".
             // Not in a list: "La voix de Hind Rajab" is a whole title.
             .map { pieces.count == 1 ? $0.replacingOccurrences(of: #"\s+de\s+\p{Lu}[\p{L}'’-]+(\s+\p{Lu}[\p{L}'’-]+)+$"#,

@@ -87,9 +87,15 @@ public struct Segment: Codable, Hashable, Identifiable, Sendable {
     /// didn't give one.
     public let score: Double?
     public let posterURL: URL?
+    /// From TMDB, for films that don't come from 5heures.be: a synopsis, the director, and the
+    /// French title when it differs from `title` (which is the original, as 5heures.be has it).
+    public let overview: String?
+    public let director: String?
+    public let localTitle: String?
 
     public init(id: Int, title: String, kind: SegmentKind, start: Double?, verdict: String?,
-                score: Double? = nil, posterURL: URL?) {
+                score: Double? = nil, posterURL: URL?, overview: String? = nil, director: String? = nil,
+                localTitle: String? = nil) {
         self.id = id
         self.title = title
         self.kind = kind
@@ -97,6 +103,9 @@ public struct Segment: Codable, Hashable, Identifiable, Sendable {
         self.verdict = verdict
         self.score = score
         self.posterURL = posterURL
+        self.overview = overview
+        self.director = director
+        self.localTitle = localTitle
     }
 
     /// The release year at the end of a film's title: "Oblivion (2013)" is 2013.
@@ -158,6 +167,13 @@ public struct Episode: Codable, Hashable, Identifiable, Sendable {
     }
 
     public var title: String { name ?? "\(series.title) du \(EpisodeDates.short.string(from: date))" }
+
+    /// For a Dayez episode, the films as its title names them ("Coward · Wicker · Karma"), whatever
+    /// its segments have since been renamed to: what TMDB lookups are keyed by.
+    public var spokenFilms: [String] {
+        guard series == .dayez, !segments.isEmpty, let name else { return [] }
+        return name.components(separatedBy: " · ")
+    }
 
     /// The films, series and people, in the order they're discussed.
     public var subjects: [Segment] { segments.filter { $0.kind.isSubject } }

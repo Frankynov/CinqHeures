@@ -383,7 +383,8 @@ private func fixtureEpisodes() throws -> [Episode] {
                 == ["Raisons et Sentiments", "Garance", "Chopin, Chopin!"])
         #expect(FeedClient.filmTitles(in: #""Le chant des Forêts", 'A pied d'oeuvre", 'L'enfant bélier""#)
                 == ["Le chant des Forêts", "A pied d'oeuvre", "L'enfant bélier"])
-        #expect(FeedClient.filmTitles(in: "Tron: Arès / Mary Anning, film d'animation / The end avec Tilda Swinton").count == 3)
+        #expect(FeedClient.filmTitles(in: "Tron: Arès / Mary Anning, film d'animation / The end avec Tilda Swinton")
+                == ["Tron: Arès", "Mary Anning", "The end"])
         #expect(FeedClient.filmTitles(in: "The Death of Robin Hood de Michael Sarnoski") == ["The Death of Robin Hood"])
         #expect(FeedClient.filmTitles(in: "La voix de Hind Rajab - Misérables - Running man")
                 == ["La voix de Hind Rajab", "Misérables", "Running man"])
@@ -435,5 +436,42 @@ private extension Episode {
         let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("Fixtures/feed.xml")
         let episodes = try FeedClient.episodes(from: Data(contentsOf: url))
         #expect(episodes.first?.id == FeedClient.stableID("d32384faf19616ab609832fbda64a126f80f4cc0"))
+    }
+}
+
+
+@Suite struct TMDBMatchingTests {
+    @Test func titlesAreComparedGenerously() {
+        #expect(TMDBClient.similarity(of: "Fausse Note", to: ["Fausse note"]) == 10)
+        #expect(TMDBClient.similarity(of: "LHomme qui a vu l'ours qui a vu l'homme", to: ["L'Homme qui a vu l'ours qui a vu l'homme"]) == 10)
+        #expect(TMDBClient.similarity(of: "Miroirs n°3", to: ["Miroirs No. 3"]) == 6)
+        #expect(TMDBClient.similarity(of: "Downton Abbey, le grand final", to: ["Downton Abbey III : Le Grand Final"]) == 6)
+        #expect(TMDBClient.similarity(of: "Beginnings", to: ["Transformers: Beginnings"]) == 6)
+        #expect(TMDBClient.similarity(of: "Karma", to: ["Garance"]) == 0)
+    }
+
+    @Test func filmsInAnotherScriptKeepTheirFrenchTitle() {
+        let chinese = FilmInfo(tmdbID: 1, title: "Résurrection", originalTitle: "狂野时代", year: 2025, overview: "", posterPath: nil, director: nil)
+        #expect(chinese.archiveTitle == "Résurrection (2025)")
+        let accented = FilmInfo(tmdbID: 2, title: "Sirat", originalTitle: "Sirāt", year: 2025, overview: "", posterPath: nil, director: nil)
+        #expect(accented.archiveTitle == "Sirāt (2025)")
+    }
+
+    @Test func aDayezEpisodeTakesTMDBsTitlePosterAndSynopsis() throws {
+        let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("Fixtures/dayez.xml")
+        let episode = try #require(FeedClient.episodes(from: Data(contentsOf: url), series: .dayez).first { $0.spokenFilms.contains("Coward") })
+        var library = FilmLibrary()
+        library.record(FilmInfo(tmdbID: 9, title: "Les Braves", originalTitle: "Coward", year: 2026, overview: "1916…",
+                                posterPath: "/x.jpg", director: "Lukas Dhont"), title: "Coward", date: episode.date)
+        library.record(nil, title: "Wicker", date: episode.date)
+        let enriched = library.enrich(episode)
+        #expect(enriched.segments[0].title == "Coward (2026)")
+        #expect(enriched.segments[0].localTitle == "Les Braves")
+        #expect(enriched.segments[0].posterURL?.absoluteString == "https://image.tmdb.org/t/p/w500/x.jpg")
+        #expect(enriched.segments[0].director == "Lukas Dhont")
+        #expect(enriched.segments[1].title == "Wicker")                          // not found: left as it was
+        #expect(library.enrich(enriched).segments[0].title == "Coward (2026)")    // enriching twice changes nothing
+        #expect(!library.needsLookup(title: "Wicker", date: episode.date))       // tried this week
+        #expect(library.needsLookup(title: "Wicker", date: episode.date, now: Date().addingTimeInterval(8 * 86_400)))
     }
 }

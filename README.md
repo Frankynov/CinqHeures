@@ -71,6 +71,22 @@ title names the week's three films in one of several formats; `FeedClient.filmTi
 the episode page, playing from the start of the ~9-minute episode. Interviews and asides are dropped.
 Feed shows are refreshed by replacing their episodes, so removed episodes go away.
 
+### Film details from TMDB
+
+Dayez's films get a poster, their French and original titles, the director and a synopsis from
+[TMDB](https://www.themoviedb.org) (where 5heures.be's own posters come from). The token stays on a
+small PHP proxy on Franky's hosting (`Tools/proxy/tmdb.php`): it only passes search, film and credits
+requests, caches answers for 30 days and limits each visitor to 120 requests a minute. The app looks
+each film up once, in French around the episode's date then in English, confirms it with the
+director or actors named in the episode description, and saves the result
+(`~/Library/Application Support/CinqHeures/films.json`). 126 of the first 129 films matched.
+
+To set up the proxy: copy `Tools/proxy/tmdb.php` to the hosting (the app expects
+`https://frankynov.ovh/cinqheures/tmdb.php`, see `TMDBClient.proxyURL`), and next to it (or one folder
+up) a `tmdb-config.php` made from `tmdb-config.example.php` with the TMDB read access token.
+
+*This product uses the TMDB API but is not endorsed or certified by TMDB.*
+
 ## The music podcast
 
 `FeedClient` reads `https://feed.ausha.co/j0n2zsQR3XOG` (found on its Ausha page). The feed has no
