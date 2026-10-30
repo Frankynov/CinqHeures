@@ -412,6 +412,13 @@ final class PlayerModel {
         loadNowPlayingPicture(pictureURL)
     }
 
+    /// The system asks for the picture on its own background queue: the handler must not belong to
+    /// the main actor, as a closure written inside this class would (and that crashed playback).
+    nonisolated private static func artwork(_ image: PlatformImage) -> MPMediaItemArtwork {
+        let box = SendableImage(image)
+        return MPMediaItemArtwork(boundsSize: image.size) { @Sendable _ in box.image }
+    }
+
     /// The picture shown on the lock screen and in Control Centre, and where it came from.
     private var nowPlayingPictureURL: URL?
     private var nowPlayingArtwork: MPMediaItemArtwork?
@@ -425,9 +432,14 @@ final class PlayerModel {
         Task {
             guard let image = await PosterCache.shared.image(for: url, pixels: 600),
                   url == nowPlayingPictureURL else { return }
-            let size = image.size
-            nowPlayingArtwork = MPMediaItemArtwork(boundsSize: size) { _ in image }
+            nowPlayingArtwork = Self.artwork(image)
             updateNowPlaying()
         }
     }
+}
+
+/// A decoded image handed to another thread; it's never changed after it's made.
+private struct SendableImage: @unchecked Sendable {
+    let image: PlatformImage
+    init(_ image: PlatformImage) { self.image = image }
 }
