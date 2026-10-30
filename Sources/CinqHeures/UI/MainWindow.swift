@@ -67,6 +67,7 @@ struct MainWindow: View {
             case .all: ShowPage(series: nil, model: model)
             case .show(let series): ShowPage(series: series, model: model)
             case .score(let stars): ListingPage(listing: .stars(stars), model: model)
+            case .unrated: ListingPage(listing: .unrated, model: model)
             }
         }
     }
@@ -90,9 +91,10 @@ struct SidebarView: View {
                 .tag(SidebarItem.home)
             Section("Émissions") {
                 Label {
-                    Text("Tout")
+                    // Every episode of every show, newest first.
+                    Text("Récents")
                 } icon: {
-                    SidebarIcon(symbol: "square.grid.2x2.fill", color: .gray)
+                    SidebarIcon(symbol: "clock.fill", color: .gray)
                 }
                 .badge(model.count(of: nil))
                 .tag(SidebarItem.all)
@@ -118,6 +120,13 @@ struct SidebarView: View {
                     .accessibilityLabel("\(stars) étoile\(stars > 1 ? "s" : "") sur 4")
                     .tag(SidebarItem.score(stars))
                 }
+                Label {
+                    Text("Sans note").foregroundStyle(.secondary)
+                } icon: {
+                    SidebarIcon(symbol: "minus", color: .gray)
+                }
+                .badge(model.unratedCount)
+                .tag(SidebarItem.unrated)
             }
         }
         .safeAreaInset(edge: .bottom) { SyncStatus(model: model) }

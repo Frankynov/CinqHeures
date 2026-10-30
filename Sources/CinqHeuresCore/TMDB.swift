@@ -210,10 +210,15 @@ public struct FilmLibrary: Codable, Sendable {
 
     public func info(title: String, date: Date) -> FilmInfo? { entries[Self.key(title: title, date: date)]?.info }
 
-    /// Not looked up yet, or not found a week ago or more (TMDB fills in new releases quickly).
+    /// Not looked up yet, or not found a while ago. TMDB fills in new releases over their first days
+    /// (Moulin, La Gradiva and The Only Living Pickpocket weren't findable the day their episode came
+    /// out, then were), so a film from the last two months is asked about again after 6 hours; an
+    /// older one after a week.
     public func needsLookup(title: String, date: Date, now: Date = Date()) -> Bool {
         guard let entry = entries[Self.key(title: title, date: date)] else { return true }
-        return entry.info == nil && now.timeIntervalSince(entry.checked) > 7 * 86_400
+        guard entry.info == nil else { return false }
+        let recent = now.timeIntervalSince(date) < 60 * 86_400
+        return now.timeIntervalSince(entry.checked) > (recent ? 6 * 3600 : 7 * 86_400)
     }
 
     public mutating func record(_ info: FilmInfo?, title: String, date: Date, at now: Date = Date()) {

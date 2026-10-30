@@ -99,7 +99,7 @@ struct ShowPage: View {
                 .accessibilityHidden(true)
         }
         .pageEdges()
-        .navigationTitle(series?.fullTitle ?? "Tous les épisodes")
+        .navigationTitle(series?.fullTitle ?? "Récents")
         .navigationSubtitle((series?.host.map { "par \($0) · " } ?? "") + "\(episodes.count) épisodes")
     }
 }

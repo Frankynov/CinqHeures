@@ -10,6 +10,8 @@ enum SidebarItem: Hashable {
     case show(Series)
     /// Every film given this score, 0 to 4, whichever show it was in.
     case score(Int)
+    /// Every film reviewed without a score.
+    case unrated
 }
 
 /// The outcome of a search: the works that matched and the episodes whose title or summary did.
@@ -184,6 +186,10 @@ final class AppModel {
     /// How many passages were given each score.
     func count(ofStars stars: Int) -> Int { starCounts[stars, default: 0] }
 
+    /// Films reviewed without a score (their count is kept with the scores', under this key).
+    private static let unratedKey = -1
+    var unratedCount: Int { starCounts[Self.unratedKey, default: 0] }
+
     /// False between a keystroke and its results, so the page doesn't flash "no results".
     var searchIsSettled: Bool { results.query == Search.fold(searchText) }
 
@@ -306,7 +312,9 @@ final class AppModel {
             var stars: [Int: Int] = [:]
             for episode in snapshot.episodes {
                 episodes[episode.series, default: 0] += 1
-                for segment in episode.segments { if let n = segment.stars { stars[n, default: 0] += 1 } }
+                for segment in episode.segments where segment.kind == .movie {
+                    stars[segment.stars ?? Self.unratedKey, default: 0] += 1
+                }
             }
             episodeCounts = episodes
             starCounts = stars

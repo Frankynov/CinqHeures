@@ -296,6 +296,12 @@ private func fixtureEpisodes() throws -> [Episode] {
         #expect(fours.allSatisfy { if case .passage(let m) = $0 { m.segment.stars == 4 } else { false } })
     }
 
+    @Test func unratedHoldsOnlyFilmsWithoutAScore() {
+        let unrated = Discovery(catalogue).items(.unrated)
+        #expect(!unrated.isEmpty)
+        #expect(unrated.allSatisfy { if case .passage(let m) = $0 { m.segment.stars == nil && m.segment.kind == .movie } else { false } })
+    }
+
     @Test func theSameSeedGivesTheSameShelves() {
         let discovery = Discovery(catalogue)
         let a = discovery.shelves(seed: 42).map { $0.items.map(\.id) }
@@ -473,5 +479,15 @@ private extension Episode {
         #expect(library.enrich(enriched).segments[0].title == "Coward (2026)")    // enriching twice changes nothing
         #expect(!library.needsLookup(title: "Wicker", date: episode.date))       // tried this week
         #expect(library.needsLookup(title: "Wicker", date: episode.date, now: Date().addingTimeInterval(8 * 86_400)))
+
+        // A new release not found yet is asked about again within the day; an old film, a week later.
+        let thisWeek = Date()
+        var fresh = FilmLibrary()
+        fresh.record(nil, title: "Moulin", date: thisWeek, at: thisWeek)
+        #expect(!fresh.needsLookup(title: "Moulin", date: thisWeek, now: thisWeek.addingTimeInterval(3600)))
+        #expect(fresh.needsLookup(title: "Moulin", date: thisWeek, now: thisWeek.addingTimeInterval(7 * 3600)))
+        let longAgo = thisWeek.addingTimeInterval(-400 * 86_400)
+        fresh.record(nil, title: "Old", date: longAgo, at: thisWeek)
+        #expect(!fresh.needsLookup(title: "Old", date: longAgo, now: thisWeek.addingTimeInterval(7 * 3600)))
     }
 }
