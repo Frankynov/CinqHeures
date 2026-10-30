@@ -8,8 +8,9 @@
  *   tmdb.php?path=movie/123456&language=fr-FR&append_to_response=credits
  * Answers are cached on disk for 30 days, and each visitor is limited to 120 requests a minute.
  *
- * The token lives in tmdb-config.php (not in the repo), looked for next to this file's folder first
- * (outside the web root, if the hosting allows), then next to this file:
+ * The token lives in tmdb-config.php (not in the repo). It's looked for next to this file, then in
+ * each folder above it, up to three levels: best kept above the web root (www), where no browser can
+ * reach it, for example at the top of an OVH hosting with this file in www/cinqheures/.
  *   <?php return ['token' => 'eyJ…'];
  */
 
@@ -26,8 +27,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') fail(405, 'GET only');
 
 // ---- the token ----------------------------------------------------------------------------------
 $config = null;
-foreach ([dirname(__DIR__) . '/tmdb-config.php', __DIR__ . '/tmdb-config.php'] as $file) {
-    if (is_file($file)) { $config = include $file; break; }
+for ($dir = __DIR__, $level = 0; $level <= 3; $dir = dirname($dir), $level++) {
+    $file = $dir . '/tmdb-config.php';
+    if (@is_file($file)) { $config = include $file; break; }
 }
 $token = is_array($config) ? ($config['token'] ?? '') : '';
 if ($token === '') fail(500, 'proxy not configured');

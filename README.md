@@ -82,8 +82,8 @@ director or actors named in the episode description, and saves the result
 (`~/Library/Application Support/CinqHeures/films.json`). 126 of the first 129 films matched.
 
 To set up the proxy: copy `Tools/proxy/tmdb.php` to the hosting (the app expects
-`https://frankynov.ovh/cinqheures/tmdb.php`, see `TMDBClient.proxyURL`), and next to it (or one folder
-up) a `tmdb-config.php` made from `tmdb-config.example.php` with the TMDB read access token.
+`https://frankynov.ovh/cinqheures/tmdb.php`, see `TMDBClient.proxyURL`), and next to it or in a folder
+above it (best: above `www`, out of the web's reach) a `tmdb-config.php` made from `tmdb-config.example.php` with the TMDB read access token.
 
 *This product uses the TMDB API but is not endorsed or certified by TMDB.*
 
