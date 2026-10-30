@@ -355,6 +355,10 @@ private struct ChapterScrubber: View {
                 .onEnded { _ in
                     if let dragTime { player.seek(to: dragTime) }
                     dragTime = nil
+                    #if os(iOS)
+                    // On a touch screen nothing "un-hovers": the bubble goes when the finger lifts.
+                    hoverX = nil
+                    #endif
                 }
         )
         .overlay(alignment: .topLeading) {

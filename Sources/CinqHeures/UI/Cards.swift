@@ -275,6 +275,12 @@ private struct PageEdges: ViewModifier {
     func body(content: Content) -> some View {
         // On iPhone the player sits above the bottom search field: keep room for both.
         let room = PlayerBar.reservedHeight + (sizeClass == .compact ? PlayerBar.phoneSearchFieldHeight : 0)
+        #if os(macOS)
         content.clipped().contentMargins(.bottom, room, for: .scrollContent)
+        #else
+        // No clip on iPhone and iPad: iOS draws each page's large title at the top of its scroll
+        // content, and clipping cut it in half under the navigation bar.
+        content.contentMargins(.bottom, room, for: .scrollContent)
+        #endif
     }
 }

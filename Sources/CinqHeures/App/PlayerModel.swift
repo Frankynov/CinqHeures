@@ -397,12 +397,37 @@ final class PlayerModel {
 
     private func updateNowPlaying() {
         guard let episode else { return }
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = [
+        var info: [String: Any] = [
             MPMediaItemPropertyTitle: (currentSegment?.title ?? episode.title),
             MPMediaItemPropertyArtist: episode.title,
             MPMediaItemPropertyPlaybackDuration: duration,
             MPNowPlayingInfoPropertyElapsedPlaybackTime: currentTime,
             MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? Double(rate) : 0.0,
         ]
+        let pictureURL = (currentSegment ?? requestedSegment)?.posterURL ?? episode.artwork
+        if let pictureURL, pictureURL == nowPlayingPictureURL, let artwork = nowPlayingArtwork {
+            info[MPMediaItemPropertyArtwork] = artwork
+        }
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+        loadNowPlayingPicture(pictureURL)
+    }
+
+    /// The picture shown on the lock screen and in Control Centre, and where it came from.
+    private var nowPlayingPictureURL: URL?
+    private var nowPlayingArtwork: MPMediaItemArtwork?
+
+    /// Fetches the poster (through the same cache as the lists) when it changes, then shows it.
+    private func loadNowPlayingPicture(_ url: URL?) {
+        guard url != nowPlayingPictureURL else { return }
+        nowPlayingPictureURL = url
+        nowPlayingArtwork = nil
+        guard let url else { return }
+        Task {
+            guard let image = await PosterCache.shared.image(for: url, pixels: 600),
+                  url == nowPlayingPictureURL else { return }
+            let size = image.size
+            nowPlayingArtwork = MPMediaItemArtwork(boundsSize: size) { _ in image }
+            updateNowPlaying()
+        }
     }
 }

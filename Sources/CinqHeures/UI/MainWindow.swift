@@ -154,8 +154,15 @@ struct SidebarView: View {
                 .badge(model.unratedCount)
                 .tag(SidebarItem.unrated)
             }
+            #if os(iOS)
+            // At the end of the list, scrolling with it: as a bar it covered the last rows.
+            Section { SyncStatus(model: model) }
+                .listRowBackground(Color.clear)
+            #endif
         }
+        #if os(macOS)
         .safeAreaInset(edge: .bottom) { SyncStatus(model: model) }
+        #endif
     }
 }
 
