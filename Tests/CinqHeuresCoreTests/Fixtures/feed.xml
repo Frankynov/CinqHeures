@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="rss.xslt" ?>
+<rss
+    xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+    xmlns:googleplay="http://www.google.com/schemas/play-podcasts/1.0"
+    xmlns:content="http://purl.org/rss/1.0/modules/content/"
+    xmlns:atom="http://www.w3.org/2005/Atom"
+    xmlns:spotify="http://www.spotify.com/ns/rss"
+    xmlns:psc="http://podlove.org/simple-chapters/"
+    xmlns:media="https://search.yahoo.com/mrss/"
+    xmlns:podcast="https://podcastindex.org/namespace/1.0"
+    version="2.0">
+    <channel>
+        <title>Il est toujours 5 Heures quelque part</title>
+                    <link>https://podcast.ausha.co/il-est-toujours-5-heures-quelque-part-2</link>
+                <atom:link rel="self" type="application/rss+xml" href="https://feed.ausha.co/j0n2zsQR3XOG"/>
+        <description>
+Podcast hebdomadaire chaque mardi 17h par  Rudy LEONET
+NOUVELLE SAISON 🎙️ 🎧
+Il est toujours 5 Heures quelque part c’est le rendez-vous incontournable des amateurs de musique qui ne veulent pas rater le train de demain. Dans chaque épisode, Rudy Léonet – figure incontournable de la scène musicale belge et trend setter depuis plus de 35 ans – partage ses coups de cœur, ses déceptions élégantes, ses découvertes inclassables et ses paris audacieux sur les futurs hits ou les artistes bientôt incontournables.
+
+
+Hébergé par Ausha. Visitez ausha.co/fr/politique-de-confidentialite pour plus d'informations.</description>
+        <language>fr</language>
+        <copyright>Rudy Leonet</copyright>
+        <lastBuildDate>Thu, 29 Oct 2026 11:51:27 +0000</lastBuildDate>
+        <pubDate>Thu, 29 Oct 2026 11:51:27 +0000</pubDate>
+        <webMaster>feeds@ausha.co (Ausha)</webMaster>
+        <generator>Ausha (https://www.ausha.co)</generator>
+                    <spotify:countryOfOrigin>be</spotify:countryOfOrigin>
+        
+        <itunes:author>Rudy Leonet</itunes:author>
+        <itunes:owner>
+            <itunes:name>Rudy Leonet</itunes:name>
+            <itunes:email>projet5heures@gmail.com</itunes:email>
+        </itunes:owner>
+        <itunes:summary>
+Podcast hebdomadaire chaque mardi 17h par  Rudy LEONET
+NOUVELLE SAISON 🎙️ 🎧
+Il est toujours 5 Heures quelque part c’est le rendez-vous incontournable des amateurs de musique qui ne veulent pas rater le train de demain. Dans chaque épisode, Rudy Léonet – figure incontournable de la scène musicale belge et trend setter depuis plus de 35 ans – partage ses coups de cœur, ses déceptions élégantes, ses découvertes inclassables et ses paris audacieux sur les futurs hits ou les artistes bientôt incontournables.
+
+
+Hébergé par Ausha. Visitez ausha.co/fr/politique-de-confidentialite pour plus d'informations.</itunes:summary>
+        <itunes:explicit>false</itunes:explicit>
+        <itunes:block>no</itunes:block>
+        <podcast:block>no</podcast:block>
+        <podcast:locked>no</podcast:locked>
+        <itunes:type>episodic</itunes:type>
+                    <itunes:subtitle>Il est toujours 5 heures quelque part</itunes:subtitle>
+                
+        <googleplay:author>Rudy Leonet</googleplay:author>
+        <googleplay:email>projet5heures@gmail.com</googleplay:email>
+        <googleplay:description>
+Podcast hebdomadaire chaque mardi 17h par  Rudy LEONET
+NOUVELLE SAISON 🎙️ 🎧
+Il est toujours 5 Heures quelque part c’est le rendez-vous incontournable des amateurs de musique qui ne veulent pas rater le train de demain. Dans chaque épisode, Rudy Léonet – figure incontournable de la scène musicale belge et trend setter depuis plus de 35 ans – partage ses coups de cœur, ses déceptions élégantes, ses découvertes inclassables et ses paris audacieux sur les futurs hits ou les artistes bientôt incontournables.
+
+
+Hébergé par Ausha. Visitez ausha.co/fr/politique-de-confidentialite pour plus d'informations.</googleplay:description>
+        <googleplay:explicit>false</googleplay:explicit>
+
+                    <podcast:funding url="">Support us!</podcast:funding>
+        
+        <category>Music</category>
+    
+        <itunes:category text="Music">
+                    <itunes:category text="Music Commentary"/>
+            </itunes:category>
+        <category>Arts</category>
+    
+        <itunes:category text="Arts">
+                    <itunes:category text="Performing Arts"/>
+            </itunes:category>
+    
+                    <image>
+                <url>https://image.ausha.co/fbSPUXGjtagJjFL5AyYNPQSP7wDdPDnJNM5Xu5e1_1400x1400.jpeg?t=1790847841</url>
+                <title>Il est toujours 5 Heures quelque part</title>
+                                    <link>https://podcast.ausha.co/il-est-toujours-5-heures-quelque-part-2</link>
+                            </image>
+            <itunes:image href="https://image.ausha.co/fbSPUXGjtagJjFL5AyYNPQSP7wDdPDnJNM5Xu5e1_1400x1400.jpeg?t=1790847841"/>
+            <googleplay:image href="https://image.ausha.co/fbSPUXGjtagJjFL5AyYNPQSP7wDdPDnJNM5Xu5e1_1400x1400.jpeg?t=1790847841"/>
+        
+                    <item>
+                <title>Halloween Mixtape</title>
+                <guid isPermaLink="false">d32384faf19616ab609832fbda64a126f80f4cc0</guid>
+                <description><![CDATA[<p>🎙️ Podcast hebdomadaire chaque mardi 17h par  Rudy LEONET 🎧 </p><br/><p>Hébergé par Ausha. Visitez <a href="https://ausha.co/politique-de-confidentialite">ausha.co/politique-de-confidentialite</a> pour plus d'informations.</p>]]></description>
+                <content:encoded><![CDATA[<p>🎙️ Podcast hebdomadaire chaque mardi 17h par  Rudy LEONET 🎧 </p><br/><p>Hébergé par Ausha. Visitez <a href="https://ausha.co/politique-de-confidentialite">ausha.co/politique-de-confidentialite</a> pour plus d'informations.</p>]]></content:encoded>
+                <pubDate>Tue, 27 Oct 2026 15:30:00 +0000</pubDate>
+                <enclosure url="https://audio.ausha.co/jnW0aSmW21x1.mp3?t=1792852477" length="79801761" type="audio/mpeg"/>
+                                    <link>https://podcast.ausha.co/il-est-toujours-5-heures-quelque-part-2/halloween-mixtape</link>
+                
+                                <itunes:author>Rudy Leonet</itunes:author>
+                <itunes:explicit>false</itunes:explicit>
+                                    <itunes:keywords>halloween,chanson,review,Concerts,U2,nostalgie,pop culture,Podcast musical,artistes émergents,Angèle,podcast hebdomadaire,episode de podcast,tendances musicales,5 heures cinéma,rudy léonet,5 heures,endurance musiciens,posture des musiciens,douleurs des musiciens,bande originales de films</itunes:keywords>
+                                <itunes:duration>1:23:07</itunes:duration>
+                <itunes:episodeType>full</itunes:episodeType>
+                                <itunes:subtitle>
+🎙️ Podcast hebdomadaire chaque mardi 17h par  Rudy LEONET 🎧 </itunes:subtitle>
+
+                
+                <googleplay:author>Rudy Leonet</googleplay:author>
+                                <googleplay:explicit>false</googleplay:explicit>
+
+                                    <itunes:image href="https://image.ausha.co/OfQeGzuJmoFrYNbAzFBLRQE5CQbAqCfbrV1sucu6_1400x1400.jpeg?t=1792750778"/>
+                    <googleplay:image href="https://image.ausha.co/OfQeGzuJmoFrYNbAzFBLRQE5CQbAqCfbrV1sucu6_1400x1400.jpeg?t=1792750778"/>
+                
+                                    <psc:chapters version="1.1">
+                                            </psc:chapters>
+                
+                            </item>
+<item>
+                <title>Episode #44 - 20 octobre 2026</title>
+                <guid isPermaLink="false">20c5c3083dfbe214a958ac2d563fb02f925f673a</guid>
+                <description><![CDATA[<p>🎙️ Podcast hebdomadaire chaque mardi 17h par  Rudy LEONET 🎧 </p><br/><p>Hébergé par Ausha. Visitez <a href="https://ausha.co/politique-de-confidentialite">ausha.co/politique-de-confidentialite</a> pour plus d'informations.</p>]]></description>
+                <content:encoded><![CDATA[<p>🎙️ Podcast hebdomadaire chaque mardi 17h par  Rudy LEONET 🎧 </p><br/><p>Hébergé par Ausha. Visitez <a href="https://ausha.co/politique-de-confidentialite">ausha.co/politique-de-confidentialite</a> pour plus d'informations.</p>]]></content:encoded>
+                <pubDate>Tue, 20 Oct 2026 14:30:00 +0000</pubDate>
+                <enclosure url="https://audio.ausha.co/vVxnRHWxlQgY.mp3?t=1792493764" length="115337505" type="audio/mpeg"/>
+                                    <link>https://podcast.ausha.co/il-est-toujours-5-heures-quelque-part-2/episode-44-20-octobre-2026</link>
+                
+                                <itunes:author>Rudy Leonet</itunes:author>
+                <itunes:explicit>false</itunes:explicit>
+                                    <itunes:keywords>chanson,Angèle,review,Concerts,U2,pop culture,Podcast musical,artistes émergents,podcast hebdomadaire,tendances musicales,5 heures cinéma,rudy léonet,5 heures,endurance musiciens,posture des musiciens,douleurs des musiciens,slayyyter,fontaines dc,adela,greatest show on earth</itunes:keywords>
+                                <itunes:duration>2:00:08</itunes:duration>
+                <itunes:episodeType>full</itunes:episodeType>
+                                <itunes:subtitle>
+🎙️ Podcast hebdomadaire chaque mardi 17h par  Rudy LEONET 🎧 </itunes:subtitle>
+
+                
+                <googleplay:author>Rudy Leonet</googleplay:author>
+                                <googleplay:explicit>false</googleplay:explicit>
+
+                                    <itunes:image href="https://image.ausha.co/ZLSjmipVTGxmCOMUQgX5MQs1eHPILpwyxB1KN8ZU_1400x1400.jpeg?t=1792493921"/>
+                    <googleplay:image href="https://image.ausha.co/ZLSjmipVTGxmCOMUQgX5MQs1eHPILpwyxB1KN8ZU_1400x1400.jpeg?t=1792493921"/>
+                
+                                    <psc:chapters version="1.1">
+                                            </psc:chapters>
+                
+                            </item>
+<item>
+                <title>Episode #43 - 13 octobre 2026</title>
+                <guid isPermaLink="false">90265f694c360345d5f1cb4128fde67d08fd4e6d</guid>
+                <description><![CDATA[<p>🎙️ Podcast hebdomadaire chaque mardi 17h par  Rudy LEONET 🎧 </p><br/><p>Hébergé par Ausha. Visitez <a href="https://ausha.co/politique-de-confidentialite">ausha.co/politique-de-confidentialite</a> pour plus d'informations.</p>]]></description>
+                <content:encoded><![CDATA[<p>🎙️ Podcast hebdomadaire chaque mardi 17h par  Rudy LEONET 🎧 </p><br/><p>Hébergé par Ausha. Visitez <a href="https://ausha.co/politique-de-confidentialite">ausha.co/politique-de-confidentialite</a> pour plus d'informations.</p>]]></content:encoded>
+                <pubDate>Tue, 13 Oct 2026 14:30:00 +0000</pubDate>
+                <enclosure url="https://audio.ausha.co/1qgwOsO7A34P.mp3?t=1791904185" length="106105761" type="audio/mpeg"/>
+                                    <link>https://podcast.ausha.co/il-est-toujours-5-heures-quelque-part-2/episode-43-13-octobre-2026</link>
+                
+                                <itunes:author>Rudy Leonet</itunes:author>
+                <itunes:explicit>false</itunes:explicit>
+                                    <itunes:keywords>chanson,review,Concerts,U2,rosalia,pop culture,artistes émergents,podcast hebdomadaire,Troye Sivan,episode de podcast,tendances musicales,5 heures cinéma,rudy léonet,5 heures,endurance musiciens,posture des musiciens,douleurs des musiciens,slayyyter,bande originales de films,adela</itunes:keywords>
+                                <itunes:duration>1:50:31</itunes:duration>
+                <itunes:episodeType>full</itunes:episodeType>
+                                <itunes:subtitle>
+🎙️ Podcast hebdomadaire chaque mardi 17h par  Rudy LEONET 🎧 </itunes:subtitle>
+
+                
+                <googleplay:author>Rudy Leonet</googleplay:author>
+                                <googleplay:explicit>false</googleplay:explicit>
+
+                                    <itunes:image href="https://image.ausha.co/Zr1f21I7MZziS4EIyHQDIWRuY0DHsM6PIFf1yVcj_1400x1400.jpeg?t=1791897835"/>
+                    <googleplay:image href="https://image.ausha.co/Zr1f21I7MZziS4EIyHQDIWRuY0DHsM6PIFf1yVcj_1400x1400.jpeg?t=1791897835"/>
+                
+                                    <psc:chapters version="1.1">
+                                            </psc:chapters>
+                
+                            </item>
+<item>
+                <title>Episode #42 - 06 octobre 2026</title>
+                <guid isPermaLink="false">5ba8b73f349b147580a58282e7e9012a8cfa6b68</guid>
+                <description><![CDATA[<p>🎙️ Podcast hebdomadaire chaque mardi 17h par  Rudy LEONET 🎧 </p><br/><p>Hébergé par Ausha. Visitez <a href="https://ausha.co/politique-de-confidentialite">ausha.co/politique-de-confidentialite</a> pour plus d'informations.</p>]]></description>
+                <content:encoded><![CDATA[<p>🎙️ Podcast hebdomadaire chaque mardi 17h par  Rudy LEONET 🎧 </p><br/><p>Hébergé par Ausha. Visitez <a href="https://ausha.co/politique-de-confidentialite">ausha.co/politique-de-confidentialite</a> pour plus d'informations.</p>]]></content:encoded>
+                <pubDate>Tue, 06 Oct 2026 14:30:00 +0000</pubDate>
+                <enclosure url="https://audio.ausha.co/00lwOh2jGJJ9.mp3?t=1791283251" length="88775841" type="audio/mpeg"/>
+                                    <link>https://podcast.ausha.co/il-est-toujours-5-heures-quelque-part-2/episode-42-06-octobre-2026</link>
+                
+                                <itunes:author>Rudy Leonet</itunes:author>
+                <itunes:explicit>false</itunes:explicit>
+                                    <itunes:keywords>review,Concerts,U2,rosalia,pop culture,Podcast musical,artistes émergents,Ed Sheeran,Free Palestine,podcast hebdomadaire,episode de podcast,tendances musicales,5 heures cinéma,rudy léonet,5 heures,endurance musiciens,posture des musiciens,douleurs des musiciens,slayyyter,adela</itunes:keywords>
+                                <itunes:duration>1:32:28</itunes:duration>
+                <itunes:episodeType>full</itunes:episodeType>
+                                <itunes:subtitle>
+🎙️ Podcast hebdomadaire chaque mardi 17h par  Rudy LEONET 🎧 </itunes:subtitle>
+
+                
+                <googleplay:author>Rudy Leonet</googleplay:author>
+                                <googleplay:explicit>false</googleplay:explicit>
+
+                                    <itunes:image href="https://image.ausha.co/OKizNFthFgT7xOz6I7KWIcAHxlZzLlM7TwOojRd1_1400x1400.jpeg?t=1791283418"/>
+                    <googleplay:image href="https://image.ausha.co/OKizNFthFgT7xOz6I7KWIcAHxlZzLlM7TwOojRd1_1400x1400.jpeg?t=1791283418"/>
+                
+                                    <psc:chapters version="1.1">
+                                            </psc:chapters>
+                
+                            </item>
+<item>
+                <title>Episode #41 - 29 septembre 2026</title>
+                <guid isPermaLink="false">a63afa567cab3ff97b73758466dcb5fd48fb73bd</guid>
+                <description><![CDATA[<p>🎙️ Podcast hebdomadaire chaque mardi 17h par  Rudy LEONET 🎧 </p><br/><p>Hébergé par Ausha. Visitez <a href="https://ausha.co/politique-de-confidentialite">ausha.co/politique-de-confidentialite</a> pour plus d'informations.</p>]]></description>
+                <content:encoded><![CDATA[<p>🎙️ Podcast hebdomadaire chaque mardi 17h par  Rudy LEONET 🎧 </p><br/><p>Hébergé par Ausha. Visitez <a href="https://ausha.co/politique-de-confidentialite">ausha.co/politique-de-confidentialite</a> pour plus d'informations.</p>]]></content:encoded>
+                <pubDate>Tue, 29 Sep 2026 14:30:00 +0000</pubDate>
+                <enclosure url="https://audio.ausha.co/BNe1d4s3eX6M.mp3?t=1790680370" length="83273889" type="audio/mpeg"/>
+                                    <link>https://podcast.ausha.co/il-est-toujours-5-heures-quelque-part-2/episode-41-29-septembre-2026</link>
+                
+                                <itunes:author>Rudy Leonet</itunes:author>
+                <itunes:explicit>false</itunes:explicit>
+                                    <itunes:keywords>chanson,review,Concerts,U2,madonna,pop culture,Podcast musical,artistes émergents,podcast hebdomadaire,george michael,episode de podcast,tendances musicales,5 heures cinéma,rudy léonet,5 heures,endurance musiciens,posture des musiciens,douleurs des musiciens,bande originales de films,mtv vma</itunes:keywords>
+                                <itunes:duration>1:26:44</itunes:duration>
+                <itunes:episodeType>full</itunes:episodeType>
+                                <itunes:subtitle>
+🎙️ Podcast hebdomadaire chaque mardi 17h par  Rudy LEONET 🎧 </itunes:subtitle>
+
+                
+                <googleplay:author>Rudy Leonet</googleplay:author>
+                                <googleplay:explicit>false</googleplay:explicit>
+
+                                    <itunes:image href="https://image.ausha.co/U6lGh3WyBNMpJ0OXCl0kNb0r0432Y17bR6teSV8J_1400x1400.jpeg?t=1790673891"/>
+                    <googleplay:image href="https://image.ausha.co/U6lGh3WyBNMpJ0OXCl0kNb0r0432Y17bR6teSV8J_1400x1400.jpeg?t=1790673891"/>
+                
+                                    <psc:chapters version="1.1">
+                                            </psc:chapters>
+                
+                            </item>
+<item>
+                <title>Episode #1 - 15 septembre 2025</title>
+                <guid isPermaLink="false">c045888734eab84646456d31ea92854754af516e</guid>
+                <description><![CDATA[<p>Podcast hebdomadaire par Rudy Léonet chaque mardi 17h, t'en veux j'en ai, GNQ, boîte à chatons, qui a vendu vendra, if you can ride on it it's a hit, T5HQQP is the new 5H</p><br/><p>Hébergé par Ausha. Visitez <a href="https://ausha.co/politique-de-confidentialite">ausha.co/politique-de-confidentialite</a> pour plus d'informations.</p>]]></description>
+                <content:encoded><![CDATA[<p>Podcast hebdomadaire par Rudy Léonet chaque mardi 17h, t'en veux j'en ai, GNQ, boîte à chatons, qui a vendu vendra, if you can ride on it it's a hit, T5HQQP is the new 5H</p><br/><p>Hébergé par Ausha. Visitez <a href="https://ausha.co/politique-de-confidentialite">ausha.co/politique-de-confidentialite</a> pour plus d'informations.</p>]]></content:encoded>
+                <pubDate>Thu, 11 Sep 2025 12:40:08 +0000</pubDate>
+                <enclosure url="https://audio.ausha.co/WqlJ4skzKdjN.mp3?t=1757593926" length="76057282" type="audio/mpeg"/>
+                                    <link>https://podcast.ausha.co/il-est-toujours-5-heures-quelque-part-2/episode-1-15-septembre-2025</link>
+                
+                                <itunes:author>Rudy Leonet</itunes:author>
+                <itunes:explicit>false</itunes:explicit>
+                                    <itunes:keywords>chanson,review,Concerts,pop culture,Podcast musical,artistes émergents,podcast hebdomadaire,episode de podcast,tendances musicales,5 heures cinéma,5heures,rudy leonet,endurance musiciens,posture des musiciens,bande orginales de films,douleurs des musiciens</itunes:keywords>
+                                <itunes:duration>1:19:13</itunes:duration>
+                <itunes:episodeType>full</itunes:episodeType>
+                                <itunes:subtitle>
+Podcast hebdomadaire par Rudy Léonet chaque mardi 17h, t'en veux j'en ai, GNQ, boîte à chatons, qui a vendu vendra, if you can ride on it it's a hit, T5HQQP is the new 5H</itunes:subtitle>
+
+                
+                <googleplay:author>Rudy Leonet</googleplay:author>
+                                <googleplay:explicit>false</googleplay:explicit>
+
+                                    <itunes:image href="https://image.ausha.co/AQ6fOZBVx4WrlsDrHQvNrxQJ3tZSyjrknBwK2AF3_1400x1400.jpeg?t=1757594410"/>
+                    <googleplay:image href="https://image.ausha.co/AQ6fOZBVx4WrlsDrHQvNrxQJ3tZSyjrknBwK2AF3_1400x1400.jpeg?t=1757594410"/>
+                
+                                    <psc:chapters version="1.1">
+                                            </psc:chapters>
+                
+                            </item>
+<item>
+                <title>Broken #43 - 13 octobre 2026</title>
+                <guid isPermaLink="false">90265f694c360345d5f1cb4128fde67d08fd4e6d</guid>
+                <description><![CDATA[<p>🎙️ Podcast hebdomadaire chaque mardi 17h par  Rudy LEONET 🎧 </p><br/><p>Hébergé par Ausha. Visitez <a href="https://ausha.co/politique-de-confidentialite">ausha.co/politique-de-confidentialite</a> pour plus d'informations.</p>]]></description>
+                <content:encoded><![CDATA[<p>🎙️ Podcast hebdomadaire chaque mardi 17h par  Rudy LEONET 🎧 </p><br/><p>Hébergé par Ausha. Visitez <a href="https://ausha.co/politique-de-confidentialite">ausha.co/politique-de-confidentialite</a> pour plus d'informations.</p>]]></content:encoded>
+                <pubDate>Tue, 13 Oct 2026 14:30:00 +0000</pubDate>
+                
+                                    <link>https://podcast.ausha.co/il-est-toujours-5-heures-quelque-part-2/episode-43-13-octobre-2026</link>
+                
+                                <itunes:author>Rudy Leonet</itunes:author>
+                <itunes:explicit>false</itunes:explicit>
+                                    <itunes:keywords>chanson,review,Concerts,U2,rosalia,pop culture,artistes émergents,podcast hebdomadaire,Troye Sivan,episode de podcast,tendances musicales,5 heures cinéma,rudy léonet,5 heures,endurance musiciens,posture des musiciens,douleurs des musiciens,slayyyter,bande originales de films,adela</itunes:keywords>
+                                <itunes:duration>1:50:31</itunes:duration>
+                <itunes:episodeType>full</itunes:episodeType>
+                                <itunes:subtitle>
+🎙️ Podcast hebdomadaire chaque mardi 17h par  Rudy LEONET 🎧 </itunes:subtitle>
+
+                
+                <googleplay:author>Rudy Leonet</googleplay:author>
+                                <googleplay:explicit>false</googleplay:explicit>
+
+                                    <itunes:image href="https://image.ausha.co/Zr1f21I7MZziS4EIyHQDIWRuY0DHsM6PIFf1yVcj_1400x1400.jpeg?t=1791897835"/>
+                    <googleplay:image href="https://image.ausha.co/Zr1f21I7MZziS4EIyHQDIWRuY0DHsM6PIFf1yVcj_1400x1400.jpeg?t=1791897835"/>
+                
+                                    <psc:chapters version="1.1">
+                                            </psc:chapters>
+                
+                            </item>
+            </channel>
+</rss>

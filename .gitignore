@@ -1,0 +1,8 @@
+# SwiftPM build folders and the assembled app
+.build/
+build/
+Resources/AppIcon.iconset/
+# macOS
+.DS_Store
+# Private values kept out of the repo (the TMDB token, when added)
+Secrets/
