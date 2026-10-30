@@ -29,6 +29,19 @@ progress** (resume positions and *Continuer l'écoute*).
 
 The window is two panes: the sidebar and a navigation stack (pages push, the back chevron returns).
 
+## iPhone and iPad (in progress)
+
+`iOS/CinqHeures.xcodeproj` (needs Xcode) builds an iPhone/iPad app from the same screens
+(`Sources/CinqHeures`, shared through a synchronized folder) and the same engine (the
+`CinqHeuresCore` package product). Only `iOS/App/` is iOS-specific (entry point, audio session for
+background playback, icon). Platform differences live in `Sources/CinqHeures/UI/Platform.swift` and a
+few `#if os(macOS)` blocks: the player becomes two rows on narrow screens and uses the device's
+volume buttons, the hero banner drops its poster when space runs out.
+
+```
+cd iOS && xcodebuild -scheme 5heures -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17' build
+```
+
 ## Build
 
 macOS 15+, Swift 6, Command Line Tools only (no Xcode).

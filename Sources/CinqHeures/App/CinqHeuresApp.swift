@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 
 /// "Réinitialiser… (cache : 12 Mo)" in the app menu: clears the cache, the listening progress, or both.
@@ -45,3 +46,4 @@ struct CinqHeuresApp: App {
         }
     }
 }
+#endif

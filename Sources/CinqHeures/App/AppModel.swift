@@ -92,7 +92,16 @@ final class AppModel {
     private(set) var catalogue: Catalogue
     private(set) var sync: SyncState = .idle
 
-    var sidebar: SidebarItem = .home
+    /// The sidebar's row. `nil` only on iPhone, when the list itself is showing (back from a page):
+    /// the rest of the app reads `sidebar`, which is then the last row picked.
+    var sidebarSelection: SidebarItem? = .home {
+        didSet { if let sidebarSelection { lastSidebar = sidebarSelection } }
+    }
+    private var lastSidebar: SidebarItem = .home
+    var sidebar: SidebarItem {
+        get { sidebarSelection ?? lastSidebar }
+        set { sidebarSelection = newValue }
+    }
     /// The pages pushed on top of the sidebar's page.
     var path: [Route] = []
     var searchText = ""

@@ -3,7 +3,11 @@ import PackageDescription
 
 let package = Package(
     name: "CinqHeures",
-    platforms: [.macOS(.v15)],
+    platforms: [.macOS(.v15), .iOS("26.0")],
+    products: [
+        // The engine shared with the iPhone and iPad app (iOS/), which builds the screens itself.
+        .library(name: "CinqHeuresCore", targets: ["CinqHeuresCore"]),
+    ],
     targets: [
         // Everything that doesn't need a window: the catalogue of episodes and segments, the
         // 5heures.be client, the search. Covered by `./test.sh`.

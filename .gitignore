@@ -7,3 +7,6 @@ Resources/AppIcon.iconset/
 # Private values kept out of the repo (the TMDB token, when added)
 Secrets/
 dist/
+# Xcode per-user state
+xcuserdata/
+*.xcuserstate

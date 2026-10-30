@@ -1,5 +1,4 @@
 import CinqHeuresCore
-import AppKit
 import SwiftUI
 
 extension Series {
@@ -105,7 +104,7 @@ struct SeriesBadge: View {
 struct Poster: View {
     let url: URL?
     var width: CGFloat = 30
-    @ViewState private var image: NSImage?
+    @ViewState private var image: PlatformImage?
 
     init(url: URL?, width: CGFloat = 30) {
         self.url = url
@@ -118,7 +117,7 @@ struct Poster: View {
     var body: some View {
         ZStack {
             if let image {
-                Image(nsImage: image).resizable().scaledToFill()
+                Image(platformImage: image).resizable().scaledToFill()
             } else {
                 Rectangle().fill(.quaternary)
                     .overlay(Image(systemName: "film").foregroundStyle(.tertiary))
@@ -139,7 +138,7 @@ struct Poster: View {
 struct Artwork: View {
     let url: URL?
     var side: CGFloat = 40
-    @ViewState private var image: NSImage?
+    @ViewState private var image: PlatformImage?
 
     init(url: URL?, side: CGFloat = 40) {
         self.url = url
@@ -152,7 +151,7 @@ struct Artwork: View {
     var body: some View {
         ZStack {
             if let image {
-                Image(nsImage: image).resizable().scaledToFill()
+                Image(platformImage: image).resizable().scaledToFill()
             } else {
                 Rectangle().fill(.quaternary)
                     .overlay(Image(systemName: "music.note").foregroundStyle(.tertiary))

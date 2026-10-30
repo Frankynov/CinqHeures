@@ -10,6 +10,8 @@ extension View {
     /// - a clip at the top: the toolbar has no background (see MainWindow), and without it rows
     ///   scroll up behind the title and the search field;
     /// - room at the bottom for the floating player, so the last row can scroll above it.
+    ///
+    /// On iPad the clip also keeps the shelves from sliding under the floating sidebar.
     func pageEdges() -> some View {
         clipped().contentMargins(.bottom, PlayerBar.reservedHeight, for: .scrollContent)
     }
@@ -19,10 +21,10 @@ extension View {
 struct RemoteImage<Content: View>: View {
     let url: URL?
     let pixels: Int
-    @ViewBuilder let content: (NSImage?) -> Content
-    @ViewState private var image: NSImage?
+    @ViewBuilder let content: (PlatformImage?) -> Content
+    @ViewState private var image: PlatformImage?
 
-    init(url: URL?, pixels: Int, @ViewBuilder content: @escaping (NSImage?) -> Content) {
+    init(url: URL?, pixels: Int, @ViewBuilder content: @escaping (PlatformImage?) -> Content) {
         self.url = url
         self.pixels = pixels
         self.content = content
@@ -52,7 +54,7 @@ struct PosterImage: View {
             .overlay {
                 RemoteImage(url: url, pixels: pixels) { image in
                     if let image {
-                        Image(nsImage: image).resizable().scaledToFill()
+                        Image(platformImage: image).resizable().scaledToFill()
                     } else {
                         Image(systemName: "film").font(.title).foregroundStyle(.tertiary)
                     }
@@ -72,7 +74,7 @@ private struct Tile: View {
         RemoteImage(url: url, pixels: max(60, Int(max(width, height) * 2))) { image in
             ZStack {
                 Rectangle().fill(.quaternary)
-                if let image { Image(nsImage: image).resizable().scaledToFill() }
+                if let image { Image(platformImage: image).resizable().scaledToFill() }
             }
         }
         .frame(width: width, height: height)

@@ -9,35 +9,79 @@ struct PlayerBar: View {
     let open: () -> Void
 
     /// What each page keeps free at its bottom (see `pageEdges`): the bar, its margin and a little air.
+    /// On iPhone and iPad the bar can take two rows.
+    #if os(macOS)
     static let reservedHeight: CGFloat = 86
+    #else
+    static let reservedHeight: CGFloat = 132
+    #endif
+
+    /// The bar's own width, to pick its one-row or two-row form.
+    @ViewState private var width: CGFloat = 1000
 
     var body: some View {
-        HStack(spacing: 16) {
-            nowPlaying
-                .frame(minWidth: 170, idealWidth: 270, maxWidth: 300, alignment: .leading)
-                .contentShape(Rectangle())
-                .onTapGesture { if player.episode != nil { open() } }
-                .help(player.episode == nil ? "" : "Ouvrir l'épisode")
-
-            transport
-                .disabled(player.phase != .ready)
-
-            // The scrubber gets the room first: on a narrow window the volume slider goes instead.
-            ChapterScrubber(player: player)
-                .frame(minWidth: 280)
-                .layoutPriority(1)
-
-            // On a narrow window the volume slider goes; the speed stays.
-            ViewThatFits(in: .horizontal) {
-                trailing(withVolume: true)
-                trailing(withVolume: false)
-            }
-            .fixedSize()
+        Group {
+            if isCompact { compact } else { wide }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 9)
         .modifier(GlassPanel(cornerRadius: 22))
         .frame(maxWidth: 1240)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+    }
+
+    /// Two rows on an iPhone or an iPad in portrait: the one-row bar needs about 760 points.
+    private var isCompact: Bool {
+        #if os(macOS)
+        false
+        #else
+        width < 760
+        #endif
+    }
+
+    /// One row: artwork and title, transport, scrubber, (volume on the Mac,) speed.
+    private var wide: some View {
+        HStack(spacing: 16) {
+            nowPlayingButton
+                .frame(minWidth: 170, idealWidth: 270, maxWidth: 300, alignment: .leading)
+            transport
+                .disabled(player.phase != .ready)
+            // The scrubber gets the room first: on a narrow window the volume slider goes instead.
+            ChapterScrubber(player: player)
+                .frame(minWidth: 280)
+                .layoutPriority(1)
+            #if os(macOS)
+            ViewThatFits(in: .horizontal) {
+                trailing(withVolume: true)
+                trailing(withVolume: false)
+            }
+            .fixedSize()
+            #else
+            // iPhone and iPad: the device's own volume buttons.
+            trailing(withVolume: false).fixedSize()
+            #endif
+        }
+    }
+
+    /// Two rows: what's playing and the controls, then the scrubber with its film marks.
+    private var compact: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 12) {
+                nowPlayingButton
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                transport
+                    .disabled(player.phase != .ready)
+                trailing(withVolume: false).fixedSize()
+            }
+            ChapterScrubber(player: player)
+        }
+    }
+
+    private var nowPlayingButton: some View {
+        nowPlaying
+            .contentShape(Rectangle())
+            .onTapGesture { if player.episode != nil { open() } }
+            .help(player.episode == nil ? "" : "Ouvrir l'épisode")
     }
 
     private var transport: some View {
@@ -96,7 +140,7 @@ struct PlayerBar: View {
             } label: {
                 Text(speedLabel(player.rate)).monospacedDigit().font(.callout.weight(.semibold))
             }
-            .menuStyle(.borderlessButton)
+            .borderlessMenu()
             .fixedSize()
             .help("Vitesse de lecture")
         }

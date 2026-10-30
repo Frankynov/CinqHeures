@@ -1,11 +1,13 @@
 import CinqHeuresCore
-import AppKit
 import SwiftUI
 
 struct MainWindow: View {
     @Bindable var model: AppModel
     /// The content pane's width, so the player can sit over it alone and not over the sidebar.
     @ViewState private var contentWidth: CGFloat = 0
+    /// Where the sidebar ends, in the window (iPad: the player starts there).
+    @ViewState private var sidebarEdge: CGFloat = 0
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
         // The player floats over the bottom of the pages, in glass; each page keeps room under its
@@ -13,17 +15,33 @@ struct MainWindow: View {
         // the navigation stack: pushed pages are hosted on their own and would be drawn over it.
         columns
             .overlay(alignment: .bottomTrailing) {
-                PlayerBar(player: model.player, open: { model.openCurrentEpisode() })
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 12)
-                    .frame(width: contentWidth > 0 ? contentWidth : nil)
+                #if os(macOS)
+                playerBar.frame(width: contentWidth > 0 ? contentWidth : nil)
+                #else
+                if sizeClass == .compact {
+                    // iPhone: across the width; above the search field while the list is showing.
+                    playerBar.padding(.bottom, model.sidebarSelection == nil ? 62 : 0)
+                } else {
+                    // iPad: from the sidebar's edge (it floats over the content column).
+                    playerBar.padding(.leading, sidebarEdge)
+                }
+                #endif
             }
+            .coordinateSpace(name: "window")
+    }
+
+    private var playerBar: some View {
+        PlayerBar(player: model.player, open: { model.openCurrentEpisode() })
+            .padding(.horizontal, 16)
+            .padding(.bottom, 12)
     }
 
     private var columns: some View {
         NavigationSplitView {
             SidebarView(model: model)
                 .navigationSplitViewColumnWidth(min: 210, ideal: 240, max: 300)
+                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .named("window")).maxX } action: { sidebarEdge = max(0, $0) }
+                .onDisappear { sidebarEdge = 0 }
         } detail: {
             // Each page handles its own edges (`pageEdges`): a modifier here would only reach the
             // root page, not the ones pushed on top of it.
@@ -43,7 +61,7 @@ struct MainWindow: View {
             model.popToRoot()
             model.searchChanged(typing: false)
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: .appBecameActive)) { _ in
             model.updateCacheUsage()
             Task { await model.refreshFeed() }
         }
@@ -51,7 +69,7 @@ struct MainWindow: View {
         // No toolbar background. On macOS 26 the content column's toolbar band starts a few points
         // inside the sidebar, because content extends under it, so its edge doesn't line up with
         // the columns below. Without the band the column edges run cleanly to the top of the window.
-        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+        .hiddenWindowToolbarBackground()
     }
 
     /// The page the sidebar's selection (or a search) shows, before anything is pushed on it.
@@ -86,7 +104,14 @@ struct SidebarView: View {
     @Bindable var model: AppModel
 
     var body: some View {
-        List(selection: $model.sidebar) {
+        // On the Mac a row always stays selected; on iPhone going back from a page empties the
+        // selection, which is what shows the list again.
+        #if os(macOS)
+        let selection = Binding<SidebarItem?>(get: { model.sidebar }, set: { if let item = $0 { model.sidebar = item } })
+        #else
+        let selection = $model.sidebarSelection
+        #endif
+        List(selection: selection) {
             Label { Text("Accueil") } icon: { SidebarIcon(symbol: "house.fill", color: .blue) }
                 .tag(SidebarItem.home)
             Section("Émissions") {
@@ -214,6 +239,6 @@ struct ResetSheet: View {
                 Text(detail).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
         }
-        .toggleStyle(.checkbox)
+        .checkboxStyle()
     }
 }

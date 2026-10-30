@@ -6,6 +6,15 @@ struct HomeView: View {
 
     var body: some View {
         ScrollView {
+            content
+        }
+        .pageEdges()
+        .navigationTitle("Accueil")
+        .navigationSubtitle("\(model.catalogue.episodes.count) épisodes")
+        .toolbar { ShuffleToolbarItem(model: model) }
+    }
+
+    private var content: some View {
             VStack(alignment: .leading, spacing: 34) {
                 if let hero = model.hero {
                     HeroView(mention: hero, model: model)
@@ -26,11 +35,6 @@ struct HomeView: View {
                 }
             }
             .padding(.vertical, 24)
-        }
-        .pageEdges()
-        .navigationTitle("Accueil")
-        .navigationSubtitle("\(model.catalogue.episodes.count) épisodes")
-        .toolbar { ShuffleToolbarItem(model: model) }
     }
 
     private func route(for shelf: Shelf) -> Route? {
@@ -90,67 +94,105 @@ private struct ShuffleToolbarItem: ToolbarContent {
 struct HeroView: View {
     let mention: Work.Mention
     let model: AppModel
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    /// The page's side margin: tighter on an iPhone.
+    private var pageMargin: CGFloat { sizeClass == .compact ? 16 : 28 }
 
     var body: some View {
-        let segment = mention.segment
-        ZStack(alignment: .leading) {
-            RemoteImage(url: segment.posterURL, pixels: 300) { image in
+        // Never wider than the page: a page that scrolls centres anything wider, which pushed every
+        // shelf sideways on a narrow iPad. Without room, the poster goes and the buttons keep only icons.
+        ViewThatFits(in: .horizontal) {
+            layout(poster: true, compactButtons: false)
+            layout(poster: true, compactButtons: true)
+            layout(poster: false, compactButtons: true)
+            layout(poster: false, compactButtons: true, phone: true)
+        }
+        .frame(maxWidth: .infinity, minHeight: 250, alignment: .leading)
+        .background {
+            RemoteImage(url: mention.segment.posterURL, pixels: 300) { image in
                 if let image {
-                    Image(nsImage: image).resizable().scaledToFill().blur(radius: 38).scaleEffect(1.3)
+                    Image(platformImage: image).resizable().scaledToFill().blur(radius: 38).scaleEffect(1.3)
                 } else {
                     Rectangle().fill(Color(red: 0.05, green: 0.2, blue: 0.43))
                 }
             }
             .overlay(LinearGradient(colors: [.black.opacity(0.72), .black.opacity(0.35)], startPoint: .leading, endPoint: .trailing))
+        }
+        .task(id: mention.segment.id) { model.warm(mention.episode, at: mention.segment) }
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .padding(.horizontal, pageMargin)
+    }
 
-            HStack(spacing: 26) {
+    /// `phone`: the narrowest form, for an iPhone: a short "Écouter" label and tighter margins.
+    private func layout(poster: Bool, compactButtons: Bool, phone: Bool = false) -> some View {
+        let segment = mention.segment
+        return HStack(spacing: 26) {
+            if poster {
                 PosterImage(url: segment.posterURL, corner: 10)
                     .frame(width: 138)
                     .shadow(color: .black.opacity(0.5), radius: 12, y: 6)
-                VStack(alignment: .leading, spacing: 9) {
-                    Text("À LA UNE · UNE CRITIQUE AU HASARD")
-                        .font(.caption.weight(.semibold)).tracking(1.4)
-                        .foregroundStyle(.white.opacity(0.7))
-                    Text(segment.displayTitle)
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundStyle(.white)
-                        .lineLimit(2)
-                    HStack(spacing: 8) {
-                        if let year = segment.year { Text(String(year)) }
-                        if let stars = segment.stars { Text(Segment.starString(stars)).foregroundStyle(brandOrange) }
-                        if let verdict = segment.spokenVerdict { Text("· \(verdict)") }
-                    }
-                    .font(.callout).foregroundStyle(.white.opacity(0.85))
-                    Text("\(EpisodeDates.long.string(from: mention.episode.date)) · \(mention.episode.series.title)")
-                        .font(.callout).foregroundStyle(.white.opacity(0.65))
-                    HStack(spacing: 10) {
-                        Button { model.play(mention.episode, from: segment) } label: {
-                            Label("Écouter la critique", systemImage: "play.fill")
-                        }
-                        .buttonStyle(.borderedProminent).tint(brandOrange).controlSize(.large)
-                        Button { model.open(.work(segment.kind, segment.title)) } label: {
-                            Label("Voir le film", systemImage: "info.circle")
-                        }
-                        .buttonStyle(.bordered).controlSize(.large).tint(.white)
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.25)) { model.anotherHero() }
-                        } label: {
-                            Label("Une autre", systemImage: "dice.fill")
-                        }
-                        .buttonStyle(.bordered).controlSize(.large).tint(.white)
-                        .help("Une autre critique au hasard")
-                    }
-                    .padding(.top, 6)
-                }
-                Spacer(minLength: 0)
             }
-            .padding(.horizontal, 28).padding(.vertical, 26)
+            VStack(alignment: .leading, spacing: 9) {
+                Text("À LA UNE · UNE CRITIQUE AU HASARD")
+                    .font(.caption.weight(.semibold)).tracking(1.4)
+                    .lineLimit(1).minimumScaleFactor(0.8)
+                    .foregroundStyle(.white.opacity(0.7))
+                Text(segment.displayTitle)
+                    .font(.system(size: 32, weight: .bold))
+                    .minimumScaleFactor(0.7)
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 8) {
+                    if let year = segment.year { Text(String(year)) }
+                    if let stars = segment.stars { Text(Segment.starString(stars)).foregroundStyle(brandOrange) }
+                    if let verdict = segment.spokenVerdict { Text("· \(verdict)").lineLimit(1) }
+                }
+                .font(.callout).foregroundStyle(.white.opacity(0.85))
+                Text("\(EpisodeDates.long.string(from: mention.episode.date)) · \(mention.episode.series.title)")
+                    .font(.callout).foregroundStyle(.white.opacity(0.65))
+                    .lineLimit(2)
+                buttons(compact: compactButtons, shortPlay: phone)
+                    .padding(.top, 6)
+            }
+            Spacer(minLength: 0)
         }
-        .task(id: mention.segment.id) { model.warm(mention.episode, at: mention.segment) }
-        .frame(height: 250)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .padding(.horizontal, 28)
+        .padding(.horizontal, poster ? 28 : phone ? 18 : 22).padding(.vertical, phone ? 20 : 26)
     }
+
+    private func buttons(compact: Bool, shortPlay: Bool = false) -> some View {
+        let segment = mention.segment
+        return HStack(spacing: 10) {
+            Button { model.play(mention.episode, from: segment) } label: {
+                Label(shortPlay ? "Écouter" : "Écouter la critique", systemImage: "play.fill").fixedSize()
+            }
+            .buttonStyle(.borderedProminent).tint(brandOrange).controlSize(.large)
+            Button { model.open(.work(segment.kind, segment.title)) } label: {
+                Label("Voir le film", systemImage: "info.circle")
+                    .labelStyle(compact ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.titleAndIcon))
+                    .fixedSize()
+            }
+            .buttonStyle(.bordered).controlSize(.large).tint(.white)
+            .help("Voir le film")
+            Button {
+                withAnimation(.easeInOut(duration: 0.25)) { model.anotherHero() }
+            } label: {
+                Label("Une autre", systemImage: "dice.fill")
+                    .labelStyle(compact ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.titleAndIcon))
+                    .fixedSize()
+            }
+            .buttonStyle(.bordered).controlSize(.large).tint(.white)
+            .help("Une autre critique au hasard")
+        }
+        .fixedSize()
+    }
+}
+
+/// A label style chosen at run time.
+struct AnyLabelStyle: LabelStyle {
+    private let make: (Configuration) -> AnyView
+    init<S: LabelStyle>(_ style: S) { make = { AnyView(style.makeBody(configuration: $0)) } }
+    func makeBody(configuration: Configuration) -> some View { make(configuration) }
 }
 
 /// A titled row of cards that scrolls sideways, with chevrons for a mouse.
@@ -161,6 +203,9 @@ struct ShelfRow: View {
     let model: AppModel
     @ViewState private var first = 0
     @ViewState private var hovering = false
+
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    private var pageMargin: CGFloat { sizeClass == .compact ? 16 : 28 }
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -175,7 +220,7 @@ struct ShelfRow: View {
                         .buttonStyle(.plain).foregroundStyle(brandOrange)
                     }
                 }
-                .padding(.horizontal, 28)
+                .padding(.horizontal, pageMargin)
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(alignment: .top, spacing: 20) {
@@ -183,7 +228,7 @@ struct ShelfRow: View {
                             ItemCard(item: item, model: model).id(item.id)
                         }
                     }
-                    .padding(.horizontal, 28).padding(.vertical, 6)
+                    .padding(.horizontal, pageMargin).padding(.vertical, 6)
                 }
                 .overlay(alignment: .leading) {
                     if hovering && first > 0 { chevron("chevron.left") { move(-5, proxy) } }
@@ -228,9 +273,12 @@ struct DecadeRow: View {
         [Color(red: 0.05, green: 0.35, blue: 0.55), Color(red: 0.10, green: 0.60, blue: 0.70)],
     ]
 
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    private var pageMargin: CGFloat { sizeClass == .compact ? 16 : 28 }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Explorer par époque").font(.title2.weight(.bold)).padding(.horizontal, 28)
+            Text("Explorer par époque").font(.title2.weight(.bold)).padding(.horizontal, pageMargin)
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: 18) {
                     ForEach(Array(tiles.enumerated()), id: \.element.id) { index, tile in
@@ -238,7 +286,7 @@ struct DecadeRow: View {
                             .onTapGesture { model.open(.listing(.decade(tile.decade))) }
                     }
                 }
-                .padding(.horizontal, 28).padding(.vertical, 6)
+                .padding(.horizontal, pageMargin).padding(.vertical, 6)
             }
         }
     }

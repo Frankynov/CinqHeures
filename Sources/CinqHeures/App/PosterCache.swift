@@ -1,4 +1,4 @@
-import AppKit
+import SwiftUI
 import CinqHeuresCore
 import ImageIO
 
@@ -13,11 +13,11 @@ final class PosterCache: @unchecked Sendable {
     static let shared = PosterCache()
 
     static let maxPixels = 150
-    private let memory = NSCache<NSString, NSImage>()
+    private let memory = NSCache<NSString, PlatformImage>()
     private let disk: URLCache
     private let session: URLSession
     private let lock = NSLock()
-    private var inFlight: [String: Task<NSImage?, Never>] = [:]
+    private var inFlight: [String: Task<PlatformImage?, Never>] = [:]
 
     private init() {
         memory.totalCostLimit = 160 << 20      // bytes of decoded thumbnails kept in memory
@@ -43,16 +43,16 @@ final class PosterCache: @unchecked Sendable {
     private func key(_ url: URL, _ pixels: Int) -> NSString { "\(pixels)|\(url.absoluteString)" as NSString }
 
     /// The thumbnail if it's already in memory: lets a view show it on its very first frame.
-    func cached(_ url: URL?, pixels: Int = PosterCache.maxPixels) -> NSImage? {
+    func cached(_ url: URL?, pixels: Int = PosterCache.maxPixels) -> PlatformImage? {
         url.flatMap { memory.object(forKey: key($0, pixels)) }
     }
 
-    func image(for url: URL, pixels: Int = PosterCache.maxPixels) async -> NSImage? {
+    func image(for url: URL, pixels: Int = PosterCache.maxPixels) async -> PlatformImage? {
         let name = key(url, pixels)
         if let hit = memory.object(forKey: name) { return hit }
-        let task = lock.withLock { () -> Task<NSImage?, Never> in
+        let task = lock.withLock { () -> Task<PlatformImage?, Never> in
             if let running = inFlight[name as String] { return running }
-            let task = Task<NSImage?, Never> { await self.load(url, pixels: pixels) }
+            let task = Task<PlatformImage?, Never> { await self.load(url, pixels: pixels) }
             inFlight[name as String] = task
             return task
         }
@@ -61,7 +61,7 @@ final class PosterCache: @unchecked Sendable {
         return image
     }
 
-    private func load(_ url: URL, pixels: Int) async -> NSImage? {
+    private func load(_ url: URL, pixels: Int) async -> PlatformImage? {
         guard let (data, response) = try? await session.data(from: url),
               (response as? HTTPURLResponse)?.statusCode == 200,
               let source = CGImageSourceCreateWithData(data as CFData, nil),
@@ -72,7 +72,7 @@ final class PosterCache: @unchecked Sendable {
                   kCGImageSourceThumbnailMaxPixelSize: pixels,
               ] as CFDictionary)
         else { return nil }
-        let image = NSImage(cgImage: thumbnail, size: NSSize(width: thumbnail.width, height: thumbnail.height))
+        let image = PlatformImage(thumbnail: thumbnail)
         memory.setObject(image, forKey: key(url, pixels), cost: thumbnail.width * thumbnail.height * 4)
         return image
     }
