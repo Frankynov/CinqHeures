@@ -16,6 +16,9 @@ struct PlayerBar: View {
     static let reservedHeight: CGFloat = 132
     #endif
 
+    /// The height of the search field iOS puts at the bottom of an iPhone screen: the bar sits above it.
+    static let phoneSearchFieldHeight: CGFloat = 62
+
     /// The bar's own width, to pick its one-row or two-row form.
     @ViewState private var width: CGFloat = 1000
 
@@ -80,8 +83,28 @@ struct PlayerBar: View {
     private var nowPlayingButton: some View {
         nowPlaying
             .contentShape(Rectangle())
-            .onTapGesture { if player.episode != nil { open() } }
+            .onTapGesture {
+                guard player.episode != nil else { return }
+                // iPhone: the full-screen player; elsewhere straight to the episode's page.
+                if isPhone { showsFullPlayer = true } else { open() }
+            }
             .help(player.episode == nil ? "" : "Ouvrir l'épisode")
+            #if os(iOS)
+            .sheet(isPresented: $showsFullPlayer) {
+                FullPlayer(player: player, openEpisode: { showsFullPlayer = false; open() })
+                    .presentationDragIndicator(.visible)
+            }
+            #endif
+    }
+
+    @ViewState private var showsFullPlayer = false
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    private var isPhone: Bool {
+        #if os(iOS)
+        sizeClass == .compact
+        #else
+        false
+        #endif
     }
 
     private var transport: some View {
@@ -456,3 +479,93 @@ private struct SlowServerExplanation: View {
         .frame(width: 360)
     }
 }
+
+#if os(iOS)
+/// iPhone's full-screen player: what's playing, big, with the controls under a thumb.
+private struct FullPlayer: View {
+    let player: PlayerModel
+    let openEpisode: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        let episode = player.episode
+        let segment = player.currentSegment ?? player.requestedSegment
+        VStack(spacing: 22) {
+            Spacer(minLength: 8)
+            Group {
+                if let url = segment?.posterURL {
+                    PosterImage(url: url, pixels: 700, corner: 16).frame(maxHeight: 360)
+                } else if let episode {
+                    EpisodeArt(episode: episode, side: 300)
+                }
+            }
+            .shadow(color: .black.opacity(0.3), radius: 18, y: 10)
+
+            VStack(spacing: 6) {
+                Text(segment?.displayTitle ?? episode?.title ?? "")
+                    .font(.title2.weight(.bold))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                if let episode {
+                    HStack(spacing: 6) {
+                        SeriesBadge(series: episode.series)
+                        Text(EpisodeDates.long.string(from: episode.date)).foregroundStyle(.secondary)
+                    }
+                    .font(.callout)
+                }
+                if player.serverIsSlow { SlowServerNote(player: player).padding(.top, 4) }
+            }
+            .padding(.horizontal, 24)
+
+            ChapterScrubber(player: player)
+                .padding(.horizontal, 24)
+
+            HStack(spacing: 44) {
+                Button { player.skip(by: -PlayerModel.jump) } label: {
+                    Image(systemName: "gobackward.15").font(.system(size: 30, weight: .medium))
+                }
+                Button { player.togglePlayPause() } label: {
+                    Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundStyle(.white)
+                        .contentTransition(.symbolEffect(.replace))
+                        .frame(width: 78, height: 78)
+                        .background(
+                            LinearGradient(colors: [Color(red: 0.98, green: 0.62, blue: 0.12), brandOrange],
+                                           startPoint: .top, endPoint: .bottom),
+                            in: Circle()
+                        )
+                        .shadow(color: brandOrange.opacity(0.4), radius: 8, y: 4)
+                }
+                Button { player.skip(by: PlayerModel.jump) } label: {
+                    Image(systemName: "goforward.15").font(.system(size: 30, weight: .medium))
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(player.phase != .ready)
+
+            HStack {
+                Menu {
+                    ForEach(PlayerModel.speeds, id: \.self) { speed in
+                        Button { player.rate = speed } label: {
+                            Text((speed == speed.rounded() ? String(format: "%.0f", speed) : String(format: "%g", speed)) + "×")
+                            if speed == player.rate { Image(systemName: "checkmark") }
+                        }
+                    }
+                } label: {
+                    Label("Vitesse " + (player.rate == player.rate.rounded() ? String(format: "%.0f", player.rate) : String(format: "%g", player.rate)) + "×",
+                          systemImage: "gauge.with.dots.needle.67percent")
+                }
+                Spacer()
+                Button(action: openEpisode) {
+                    Label("Ouvrir l'épisode", systemImage: "list.bullet")
+                }
+            }
+            .font(.callout.weight(.medium))
+            .padding(.horizontal, 28)
+            Spacer(minLength: 8)
+        }
+        .padding(.vertical, 12)
+    }
+}
+#endif

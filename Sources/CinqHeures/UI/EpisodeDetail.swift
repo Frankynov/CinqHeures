@@ -15,6 +15,9 @@ struct EpisodePage: View {
                 }
                 .navigationTitle(episode.title)
                 .navigationSubtitle(EpisodeDates.long.string(from: episode.date))
+                #if os(iOS)
+                .navigationBarTitleDisplayMode(.inline)
+                #endif
         } else {
             ContentUnavailableView("Introuvable", systemImage: "questionmark.folder")
         }
@@ -61,7 +64,7 @@ private struct EpisodeContent: View {
                                 Label(isCurrent ? "Reprendre" : player.hasProgress(episode) ? "Reprendre l'épisode" : "Écouter l'épisode",
                                       systemImage: "play.fill")
                             }
-                            .buttonStyle(.borderedProminent)
+                            .buttonStyle(.borderedProminent).tint(brandOrange)
                         }
                         if !episode.summary.isEmpty {
                             Text(episode.summary)
@@ -91,7 +94,7 @@ private struct EpisodeContent: View {
                         }
                     }
                 }
-                .padding(28)
+                .pagePadding()
             }
             .pageEdges()
             .onAppear { scroll(proxy) }

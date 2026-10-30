@@ -55,7 +55,7 @@ struct ListingPage: View {
                 LazyVGrid(columns: gridColumns, spacing: 26) {
                     ForEach(items) { item in ItemCard(item: item, model: model, width: nil) }
                 }
-                .padding(28)
+                .pagePadding()
             }
         }
         .pageEdges()
@@ -75,6 +75,7 @@ struct ListingPage: View {
 struct ShowPage: View {
     let series: Series?
     let model: AppModel
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
         let episodes = model.catalogue.episodes.filter { series == nil || $0.series == series }
@@ -93,7 +94,7 @@ struct ShowPage: View {
                 }
             }
             Color.clear
-                .frame(height: PlayerBar.reservedHeight)
+                .frame(height: PlayerBar.reservedHeight + (sizeClass == .compact ? PlayerBar.phoneSearchFieldHeight : 0))
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
                 .accessibilityHidden(true)
@@ -177,7 +178,7 @@ struct SearchPage: View {
                             }
                         }
                     }
-                    .padding(.horizontal, 28).padding(.bottom, 28)
+                    .pagePadding([.horizontal, .bottom])
                 }
             }
         }

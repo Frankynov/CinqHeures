@@ -12,9 +12,7 @@ extension View {
     /// - room at the bottom for the floating player, so the last row can scroll above it.
     ///
     /// On iPad the clip also keeps the shelves from sliding under the floating sidebar.
-    func pageEdges() -> some View {
-        clipped().contentMargins(.bottom, PlayerBar.reservedHeight, for: .scrollContent)
-    }
+    func pageEdges() -> some View { modifier(PageEdges()) }
 }
 
 /// Loads a thumbnail and hands it to `content` (nil while it loads).
@@ -268,5 +266,15 @@ struct ItemCard: View {
         case .passage(let mention): FilmCard(mention: mention, model: model, width: width)
         case .episode(let episode, let resume): EpisodeCard(episode: episode, resume: resume, model: model, width: width ?? 150)
         }
+    }
+}
+
+private struct PageEdges: ViewModifier {
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    func body(content: Content) -> some View {
+        // On iPhone the player sits above the bottom search field: keep room for both.
+        let room = PlayerBar.reservedHeight + (sizeClass == .compact ? PlayerBar.phoneSearchFieldHeight : 0)
+        content.clipped().contentMargins(.bottom, room, for: .scrollContent)
     }
 }

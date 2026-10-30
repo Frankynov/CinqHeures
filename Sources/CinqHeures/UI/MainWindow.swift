@@ -19,8 +19,8 @@ struct MainWindow: View {
                 playerBar.frame(width: contentWidth > 0 ? contentWidth : nil)
                 #else
                 if sizeClass == .compact {
-                    // iPhone: across the width; above the search field while the list is showing.
-                    playerBar.padding(.bottom, model.sidebarSelection == nil ? 62 : 0)
+                    // iPhone: across the width, above the search field iOS puts at the bottom.
+                    playerBar.padding(.bottom, PlayerBar.phoneSearchFieldHeight)
                 } else {
                     // iPad: from the sidebar's edge (it floats over the content column).
                     playerBar.padding(.leading, sidebarEdge)
@@ -47,7 +47,8 @@ struct MainWindow: View {
             // root page, not the ones pushed on top of it.
             NavigationStack(path: $model.path) {
                 root
-                    .navigationDestination(for: Route.self) { destination($0) }
+                    .navigationDestination(for: Route.self) { destination($0).phoneSearch(model: model) }
+                    .phoneSearch(model: model)
             }
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { contentWidth = $0 }
         }
