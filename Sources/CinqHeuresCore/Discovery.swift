@@ -149,7 +149,7 @@ public struct Discovery: Sendable {
                          listing: listing, show: nil)
         }
         // No "latest" shelf: the 5heures.be archive no longer grows, so it would never change.
-        // The music podcast, which does, comes right after the first shelf. "À redécouvrir" leads:
+        // The feed shows, which do, come right after the first shelf. "À redécouvrir" leads:
         // it draws on far more films than the 4-star shelf, so a shuffle changes it more.
         var shelves = [
             sample(.rediscover, title: "À redécouvrir", id: "rediscover"),

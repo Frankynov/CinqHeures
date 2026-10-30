@@ -37,6 +37,10 @@ private struct EpisodeContent: View {
                                 Artwork(url: episode.artwork, side: 110)
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(episode.title).font(.title3.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
+                                    if let host = episode.series.host {
+                                        Text("\(episode.series.fullTitle), par \(host)")
+                                            .font(.callout.weight(.medium)).foregroundStyle(.secondary)
+                                    }
                                     Text(EpisodeDates.long.string(from: episode.date))
                                         .foregroundStyle(.secondary)
                                     if let duration = episode.duration {

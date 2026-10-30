@@ -1,7 +1,7 @@
 import Foundation
 
 /// Reads the shows that come as plain podcast feeds:
-/// - Rudy's music podcast, "Il est toujours 5 heures quelque part", from Ausha;
+/// - Rudy Léonet's weekly "Il est toujours 5 heures quelque part", from Ausha;
 /// - Hugues Dayez's weekly reviews, from Franky's own Audiobookshelf (RTBF's Auvio needs a login).
 /// Their episodes have no per-film timecodes. Dayez's titles name the three films, which become
 /// segments without a start, so they're searchable and listed, and play from the episode's start.
@@ -48,7 +48,7 @@ public struct FeedClient: Sendable {
         let generic = Set(frequency.filter { Double($0.value) >= Double(max(items.count, 1)) * 0.4 }.keys)
 
         return items.map { item in
-            // The music podcast keeps the ids it always had (its guid alone); others are prefixed by their show.
+            // "Il est toujours 5 heures quelque part" keeps the ids it always had (its guid alone); others are prefixed by their show.
             let key = (series == .quelquePart ? "" : series.rawValue + "|") + (item.guid ?? item.title)
             let artwork = item.artwork ?? parser.channelArtwork
             if series == .dayez {

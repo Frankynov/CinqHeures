@@ -6,3 +6,4 @@ Resources/AppIcon.iconset/
 .DS_Store
 # Private values kept out of the repo (the TMDB token, when added)
 Secrets/
+dist/

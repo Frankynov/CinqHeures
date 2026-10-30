@@ -376,7 +376,7 @@ final class AppModel {
         rebuildIndex()
     }
 
-    /// The music podcast is weekly: one small request when the app starts and whenever it comes
+    /// The feed shows are weekly: one small request when the app starts and whenever it comes
     /// back to the front after an hour or more. Failing is fine; the saved episodes stay.
     func refreshFeed() async {
         guard Date().timeIntervalSince(lastFeedRefresh) > 3600 else { return }

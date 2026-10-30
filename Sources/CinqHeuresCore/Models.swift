@@ -1,7 +1,8 @@
 import Foundation
 
-/// The four shows 5heures.be publishes, named the way the site's API names them, and Rudy's
-/// music podcast, which lives on Ausha instead.
+/// The four shows 5heures.be publishes, named the way the site's API names them, and the two that
+/// come as podcast feeds: Rudy Léonet's "Il est toujours 5 heures quelque part" (on Ausha) and
+/// Hugues Dayez's weekly reviews.
 ///
 /// The order of the cases is the sidebar's order.
 public enum Series: String, Codable, CaseIterable, Sendable, Identifiable {
@@ -21,8 +22,17 @@ public enum Series: String, Codable, CaseIterable, Sendable, Identifiable {
         case .soir: "5 heures du soir"
         case .codLive: "COD Live"
         case .autre: "Autre"
-        case .quelquePart: "5 heures quelque part"
+        case .quelquePart: "Il est toujours 5 heures quelque part"
         case .dayez: "Hugues Dayez"
+        }
+    }
+
+    /// Who makes it, for the shows that aren't 5heures.be's own.
+    public var host: String? {
+        switch self {
+        case .quelquePart: "Rudy Léonet"
+        case .dayez: "Hugues Dayez"
+        default: nil
         }
     }
 

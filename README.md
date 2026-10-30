@@ -4,14 +4,36 @@
 stay on their servers; the app only reads what their sites and feeds publish.*
 
 A native macOS player for the [5heures.be](https://5heures.be) film-review podcast archive
-(1,457 episodes: Podcast, 5 heures du soir, COD Live, Autre), plus Rudy's weekly music podcast
-"Il est toujours 5 heures quelque part" (Ausha RSS feed, refreshed at launch and whenever the app
-comes back to the front after an hour).
+(1,457 episodes: Podcast, 5 heures du soir, COD Live, Autre), plus Rudy Léonet's weekly show
+*Il est toujours 5 heures quelque part* and Hugues Dayez's weekly reviews (RSS feeds, refreshed at
+launch and whenever the app comes back to the front after an hour).
+
+![Home: a random review, shelves to browse, the floating player](docs/screenshots/home.png)
+
+## Download
+
+**[5heures 1.0 for macOS](https://github.com/Frankynov/CinqHeures/releases/latest)**: one app for
+Apple silicon and Intel Macs, macOS 15 or later. Unzip it and move *5heures* to Applications.
+
+The app isn't notarized by Apple, so the first time macOS refuses to open it. Open it once, then go to
+**System Settings › Privacy & Security** and click **Open Anyway** next to the message about *5heures*.
+(Or, in Terminal: `xattr -dr com.apple.quarantine /Applications/5heures.app`.)
+
+## Screenshots
+
+| | |
+|---|---|
+| ![A film page: poster, synopsis and every review of it](docs/screenshots/film.png) | ![An episode: everything discussed in it, with its timecode](docs/screenshots/episode.png) |
+| *A film page (here from Hugues Dayez's reviews, with TMDB's synopsis)* | *An episode and its programme; the player marks each film* |
+| ![Search: films, series and people across the archive](docs/screenshots/search.png) | ![Il est toujours 5 heures quelque part, by Rudy Léonet](docs/screenshots/show.png) |
+| *Search across every show* | *Il est toujours 5 heures quelque part, by Rudy Léonet* |
+
+## What it does
 
 - **Home** (Infuse-style): a hero banner with a random well-rated review you can play at once
   (**Une autre** picks another, never one of the last thirty),
-  then poster shelves: *Continuer l'écoute*, *À redécouvrir*, the music podcast (the only part
-  that still gets new episodes), *Coups de cœur ★★★★*, *Séries*, *Revenus plusieurs fois*, *Rencontres*, *Critic On Demand Live*, and
+  then poster shelves: *Continuer l'écoute*, *À redécouvrir*, *Il est toujours 5 heures quelque part*
+  and Hugues Dayez's reviews (the parts that still get new episodes), *Coups de cœur ★★★★*, *Séries*, *Revenus plusieurs fois*, *Rencontres*, *Critic On Demand Live*, and
   *Explorer par époque* (decade tiles, the archive's stand-in for genres, which it doesn't have).
   The random shelves reshuffle with **Surprenez-moi** (the goat); every shelf has **Tout voir**.
 - **Search** stays in the toolbar and shows results as posters (films, series, people) plus episodes
@@ -87,7 +109,7 @@ above it (best: above `www`, out of the web's reach) a `tmdb-config.php` made fr
 
 *This product uses the TMDB API but is not endorsed or certified by TMDB.*
 
-## The music podcast
+## Il est toujours 5 heures quelque part, by Rudy Léonet
 
 `FeedClient` reads `https://feed.ausha.co/j0n2zsQR3XOG` (found on its Ausha page). The feed has no
 tracklist or chapters, so its episodes have no per-song timecodes: they show title, date, length and

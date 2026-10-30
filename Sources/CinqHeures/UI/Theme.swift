@@ -135,7 +135,7 @@ struct Poster: View {
     }
 }
 
-/// A square cover (the music podcast has no film posters).
+/// A square cover, for the feed shows' episodes (they have no film posters).
 struct Artwork: View {
     let url: URL?
     var side: CGFloat = 40

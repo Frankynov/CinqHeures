@@ -98,7 +98,7 @@ struct SidebarView: View {
                 .tag(SidebarItem.all)
                 ForEach(Series.allCases) { series in
                     Label {
-                        Text(series.title)
+                        Text(series.title).lineLimit(2)
                     } icon: {
                         SidebarIcon(symbol: series.symbol, color: series.tint, inset: series == .codLive ? 2.5 : 4)
                     }
