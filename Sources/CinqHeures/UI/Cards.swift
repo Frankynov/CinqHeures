@@ -273,8 +273,8 @@ private struct PageEdges: ViewModifier {
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     func body(content: Content) -> some View {
-        // On iPhone the player sits above the bottom search field: keep room for both.
-        let room = PlayerBar.reservedHeight + (sizeClass == .compact ? PlayerBar.phoneSearchFieldHeight : 0)
+        // On iPhone the tab bar and its mini player inset the pages themselves.
+        let room: CGFloat = sizeClass == .compact ? 0 : PlayerBar.reservedHeight
         #if os(macOS)
         content.clipped().contentMargins(.bottom, room, for: .scrollContent)
         #else

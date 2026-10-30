@@ -10,6 +10,19 @@ struct MainWindow: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
+        #if os(iOS)
+        if sizeClass == .compact {
+            // iPhone: tabs, with the mini player above them (see PhoneTabs).
+            PhoneTabs(model: model).modifier(AppBehaviors(model: model))
+        } else {
+            splitLayout
+        }
+        #else
+        splitLayout
+        #endif
+    }
+
+    private var splitLayout: some View {
         // The player floats over the bottom of the pages, in glass; each page keeps room under its
         // last row (`pageEdges`) so nothing stays hidden behind it. It hangs off the whole window, not
         // the navigation stack: pushed pages are hosted on their own and would be drawn over it.
@@ -18,13 +31,8 @@ struct MainWindow: View {
                 #if os(macOS)
                 playerBar.frame(width: contentWidth > 0 ? contentWidth : nil)
                 #else
-                if sizeClass == .compact {
-                    // iPhone: across the width, above the search field iOS puts at the bottom.
-                    playerBar.padding(.bottom, PlayerBar.phoneSearchFieldHeight)
-                } else {
-                    // iPad: from the sidebar's edge (it floats over the content column).
-                    playerBar.padding(.leading, sidebarEdge)
-                }
+                // iPad: from the sidebar's edge (it floats over the content column).
+                playerBar.padding(.leading, sidebarEdge)
                 #endif
             }
             .coordinateSpace(name: "window")
@@ -47,26 +55,12 @@ struct MainWindow: View {
             // root page, not the ones pushed on top of it.
             NavigationStack(path: $model.path) {
                 root
-                    .navigationDestination(for: Route.self) { destination($0).phoneSearch(model: model) }
-                    .phoneSearch(model: model)
+                    .navigationDestination(for: Route.self) { destination($0) }
             }
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { contentWidth = $0 }
         }
         .searchable(text: $model.searchText, placement: .toolbar, prompt: "Film, série, réalisateur, acteur, artiste…")
-        .onChange(of: model.searchText) {
-            if model.isSearching { model.popToRoot() }
-            model.searchChanged()
-        }
-        .onChange(of: model.scope) { model.searchChanged(typing: false) }
-        .onChange(of: model.sidebar) {
-            model.popToRoot()
-            model.searchChanged(typing: false)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .appBecameActive)) { _ in
-            model.updateCacheUsage()
-            Task { await model.refreshFeed() }
-        }
-        .sheet(isPresented: $model.showsReset) { ResetSheet(model: model) }
+        .modifier(AppBehaviors(model: model))
         // No toolbar background. On macOS 26 the content column's toolbar band starts a few points
         // inside the sidebar, because content extends under it, so its edge doesn't line up with
         // the columns below. Without the band the column edges run cleanly to the top of the window.
@@ -92,12 +86,46 @@ struct MainWindow: View {
     }
 
     @ViewBuilder private func destination(_ route: Route) -> some View {
+        RoutePage(route: route, model: model)
+    }
+}
+
+/// The page a route leads to, wherever it's pushed (the content column, or an iPhone tab).
+struct RoutePage: View {
+    let route: Route
+    let model: AppModel
+
+    var body: some View {
         switch route {
         case .work(let kind, let title): WorkPage(kind: kind, title: title, model: model)
         case .episode(let id, let highlight): EpisodePage(id: id, highlight: highlight, model: model)
         case .listing(let listing): ListingPage(listing: listing, model: model)
         case .show(let series): ShowPage(series: series, model: model)
+        case .recent: ShowPage(series: nil, model: model)
         }
+    }
+}
+
+/// What the window does whatever its layout: run searches, refresh the feeds, offer the reset sheet.
+struct AppBehaviors: ViewModifier {
+    @Bindable var model: AppModel
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: model.searchText) {
+                if model.isSearching { model.popToRoot() }
+                model.searchChanged()
+            }
+            .onChange(of: model.scope) { model.searchChanged(typing: false) }
+            .onChange(of: model.sidebar) {
+                model.popToRoot()
+                model.searchChanged(typing: false)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .appBecameActive)) { _ in
+                model.updateCacheUsage()
+                Task { await model.refreshFeed() }
+            }
+            .sheet(isPresented: $model.showsReset) { ResetSheet(model: model) }
     }
 }
 

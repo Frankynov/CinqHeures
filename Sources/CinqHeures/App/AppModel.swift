@@ -104,6 +104,12 @@ final class AppModel {
     }
     /// The pages pushed on top of the sidebar's page.
     var path: [Route] = []
+    /// iPhone: the tab showing, and the pages pushed in the other two tabs (`path` is Accueil's,
+    /// and the only one on the Mac and the iPad).
+    enum PhoneTab: Hashable { case home, shows, search }
+    var phoneTab: PhoneTab = .home
+    var showsPath: [Route] = []
+    var searchPath: [Route] = []
     var searchText = ""
     /// What the last finished search found. Computed off the main thread, a moment after typing stops.
     private(set) var results = SearchOutcome()
@@ -224,10 +230,23 @@ final class AppModel {
         player.warm(episode, at: segment)
     }
 
-    func open(_ route: Route) { path.append(route) }
+    /// Pushes a page in the current tab (iPhone) or the content column (Mac, iPad).
+    func open(_ route: Route) {
+        switch phoneTab {
+        case .home: path.append(route)
+        case .shows: showsPath.append(route)
+        case .search: searchPath.append(route)
+        }
+    }
 
-    /// Back to the sidebar's own page (a new search, a new sidebar row).
-    func popToRoot() { path = [] }
+    /// Back to the first page of the current tab (a new search, a new sidebar row).
+    func popToRoot() {
+        switch phoneTab {
+        case .home: path = []
+        case .shows: showsPath = []
+        case .search: searchPath = []
+        }
+    }
 
     /// The episode being played, as a page.
     func openCurrentEpisode() {

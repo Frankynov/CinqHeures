@@ -16,9 +16,6 @@ struct PlayerBar: View {
     static let reservedHeight: CGFloat = 132
     #endif
 
-    /// The height of the search field iOS puts at the bottom of an iPhone screen: the bar sits above it.
-    static let phoneSearchFieldHeight: CGFloat = 62
-
     /// The bar's own width, to pick its one-row or two-row form.
     @ViewState private var width: CGFloat = 1000
 
@@ -411,7 +408,7 @@ struct GlassPanel: ViewModifier {
 
 /// Shown while 5heures.be's server is slow to hand over a passage: short enough to always fit, with
 /// the time waited so far, and the explanation one click away.
-private struct SlowServerNote: View {
+struct SlowServerNote: View {
     let player: PlayerModel
     @ViewState private var showsExplanation = false
 
@@ -486,7 +483,7 @@ private struct SlowServerExplanation: View {
 
 #if os(iOS)
 /// iPhone's full-screen player: what's playing, big, with the controls under a thumb.
-private struct FullPlayer: View {
+struct FullPlayer: View {
     let player: PlayerModel
     let openEpisode: () -> Void
     @Environment(\.dismiss) private var dismiss

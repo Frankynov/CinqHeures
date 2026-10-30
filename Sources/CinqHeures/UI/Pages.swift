@@ -94,7 +94,7 @@ struct ShowPage: View {
                 }
             }
             Color.clear
-                .frame(height: PlayerBar.reservedHeight + (sizeClass == .compact ? PlayerBar.phoneSearchFieldHeight : 0))
+                .frame(height: sizeClass == .compact ? 0 : PlayerBar.reservedHeight)
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
                 .accessibilityHidden(true)

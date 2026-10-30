@@ -82,25 +82,3 @@ private struct PagePadding: ViewModifier {
     }
 }
 
-extension View {
-    /// On iPhone, the search field on every page (iOS shows it at the bottom), not only on the list of
-    /// shows: the split view's own field, set on MainWindow, is only on the list there.
-    func phoneSearch(model: AppModel) -> some View { modifier(PhoneSearch(model: model)) }
-}
-
-private struct PhoneSearch: ViewModifier {
-    @Bindable var model: AppModel
-    @Environment(\.horizontalSizeClass) private var sizeClass
-
-    func body(content: Content) -> some View {
-        #if os(iOS)
-        if sizeClass == .compact {
-            content.searchable(text: $model.searchText, prompt: "Film, série, réalisateur, acteur…")
-        } else {
-            content
-        }
-        #else
-        content
-        #endif
-    }
-}
