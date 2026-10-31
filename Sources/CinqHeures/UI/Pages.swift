@@ -91,14 +91,23 @@ struct ListingPage: View {
         .toolbar {
             if sizeClass != .compact {
                 ToolbarItem {
+                    #if os(macOS)
                     Picker("Affichage", selection: $layout) {
                         Label("Grille", systemImage: "square.grid.2x2").tag(ListingLayout.grid)
                         Label("Liste", systemImage: "list.bullet").tag(ListingLayout.list)
                     }
                     .pickerStyle(.segmented)
-                    // Two icons' worth: on iOS a toolbar picker otherwise spreads across the whole bar.
-                    .fixedSize()
                     .help("Afficher en grille d'affiches ou en liste")
+                    #else
+                    // One button showing the other view: a segmented picker drew its own capsule inside
+                    // the toolbar's glass one.
+                    Button {
+                        layout = layout == .grid ? .list : .grid
+                    } label: {
+                        layout == .grid ? Label("Liste", systemImage: "list.bullet")
+                                        : Label("Grille", systemImage: "square.grid.2x2")
+                    }
+                    #endif
                 }
             }
             ToolbarItem {
