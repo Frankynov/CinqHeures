@@ -10,6 +10,8 @@ struct CinqHeuresiOSApp: App {
         // Audio keeps playing with the screen locked or another app in front, like any podcast app.
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, policy: .longFormAudio)
         try? AVAudioSession.sharedInstance().setActive(true)
+        // Segments as wide as their words: split evenly, "Personnalités" in the search scopes was cut off.
+        UISegmentedControl.appearance().apportionsSegmentWidthsByContent = true
     }
 
     var body: some Scene {

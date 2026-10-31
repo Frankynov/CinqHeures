@@ -30,7 +30,7 @@ public enum SearchScope: String, CaseIterable, Identifiable, Sendable {
         case .all: "Tout"
         case .movies: "Films"
         case .shows: "Séries"
-        case .people: "Personnes"
+        case .people: "Personnalités"
         }
     }
 

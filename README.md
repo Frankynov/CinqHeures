@@ -30,7 +30,7 @@ convaincu ? « Une autre ». Et le bouton à la chèvre, *Surprenez-moi*, mélan
 
 **Parcourir.** Par époque (les années 60, les années 80…), par note (des « 4 bonnes doses » aux
 « 0 brigadier »), par émission, ou dans les rangées *À redécouvrir*, *Coups de cœur*, *Séries*,
-*Rencontres*…
+*Personnalités*…
 
 **Chaque épisode et tout son programme.** Les films, séries et invités d'un épisode, avec leur minute.
 Pendant l'écoute, la barre de lecture marque chaque film ; survolez-la pour voir lequel.

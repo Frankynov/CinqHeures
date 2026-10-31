@@ -269,7 +269,7 @@ struct SearchPage: View {
                     VStack(alignment: .leading, spacing: 28) {
                         group("Films", kind: .movie, in: results.works)
                         group("Séries", kind: .tvShow, in: results.works)
-                        group("Personnes", kind: .person, in: results.works)
+                        group("Personnalités", kind: .person, in: results.works)
                         if !results.described.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Dans le titre ou le résumé d'un épisode").font(.title3.weight(.bold))

@@ -187,7 +187,7 @@ private func filmSubtitle(_ segment: Segment, passages: Int) -> String {
     var parts: [String] = []
     switch segment.kind {
     case .tvShow: parts.append("Série")
-    case .person: parts.append("Rencontre")
+    case .person: parts.append("Personnalité")
     default: if let year = segment.year { parts.append(String(year)) }
     }
     if passages > 1 { parts.append("\(passages) passages") }

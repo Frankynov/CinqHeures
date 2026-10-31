@@ -30,7 +30,7 @@ public enum Listing: Hashable, Sendable {
         case .latest: "Derniers passages"
         case .rediscover: "À redécouvrir"
         case .series: "Séries"
-        case .people: "Rencontres"
+        case .people: "Personnalités"
         case .repeats: "Revenus plusieurs fois"
         case .codLive: "Critic On Demand Live"
         case .stars(let n): "Films notés \(n)/4"
@@ -161,7 +161,7 @@ public struct Discovery: Sendable {
             sample(.stars(4), title: "Coups de cœur ★★★★", id: "stars4"),
             sample(.series, title: "Séries", id: "series"),
             sample(.repeats, title: "Revenus plusieurs fois", id: "repeats"),
-            sample(.people, title: "Rencontres", id: "people"),
+            sample(.people, title: "Personnalités", id: "people"),
             sample(.codLive, title: "Critic On Demand Live", id: "cod"),
         ]
         // The shows that still get new episodes, right after the first shelf.

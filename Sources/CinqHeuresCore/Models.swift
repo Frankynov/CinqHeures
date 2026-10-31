@@ -75,7 +75,7 @@ public enum SegmentKind: String, Codable, Sendable {
         switch self {
         case .movie: "Film"
         case .tvShow: "Série"
-        case .person: "Personne"
+        case .person: "Personnalité"
         case .introduction: "Introduction"
         case .conclusion: "Conclusion"
         case .other: "Divers"
