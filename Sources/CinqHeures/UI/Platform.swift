@@ -43,7 +43,11 @@ extension View {
     /// No toolbar background (Mac only, see MainWindow); iOS keeps its own.
     @ViewBuilder func hiddenWindowToolbarBackground() -> some View {
         #if os(macOS)
-        toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+        if #available(macOS 15, *) {
+            toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+        } else {
+            toolbarBackground(.hidden, for: .windowToolbar)
+        }
         #else
         self
         #endif

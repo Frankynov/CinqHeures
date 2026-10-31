@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/Frankynov/CinqHeures/releases/latest"><strong>⬇︎ Télécharger pour Mac</strong></a>
-  &nbsp;·&nbsp; macOS 15 ou plus récent &nbsp;·&nbsp; gratuit
+  &nbsp;·&nbsp; macOS 14 ou plus récent &nbsp;·&nbsp; gratuit
 </p>
 
 ![L'accueil de l'app : une critique au hasard, des rangées d'affiches à parcourir, et le lecteur en bas](docs/screenshots/home.png)
@@ -53,7 +53,7 @@ critiques d'Hugues Dayez, avec affiches et résumés des films.
 
 1. **[Téléchargez la dernière version](https://github.com/Frankynov/CinqHeures/releases/latest)**
    (le fichier `5heures-…-universal.zip`). Elle fonctionne sur tous les Mac récents, avec puce Apple
-   ou Intel, sous macOS 15 ou plus récent.
+   ou Intel, sous macOS 14 ou plus récent.
 2. Ouvrez le fichier téléchargé, puis glissez **5heures** dans votre dossier **Applications**.
 3. La première fois, macOS refuse de l'ouvrir : l'app est gratuite et n'est pas passée par l'App Store.
    Fermez le message, ouvrez **Réglages Système › Confidentialité et sécurité**, descendez jusqu'au

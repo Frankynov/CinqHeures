@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "CinqHeures",
-    platforms: [.macOS(.v15), .iOS("26.0")],
+    platforms: [.macOS(.v14), .iOS("26.0")],
     products: [
         // The engine shared with the iPhone and iPad app (iOS/), which builds the screens itself.
         .library(name: "CinqHeuresCore", targets: ["CinqHeuresCore"]),
