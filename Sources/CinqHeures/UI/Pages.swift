@@ -45,20 +45,22 @@ struct ListingPage: View {
     let model: AppModel
     @ViewState private var items: [ShelfItem] = []
     @ViewState private var loaded = false
+    @AppStorage("listingOrder") private var order = ListingOrder.date
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
+        let shown = order.sorted(items)
         Group {
             if loaded && items.isEmpty {
                 ContentUnavailableView("Rien ici", systemImage: "film")
             } else if sizeClass == .compact {
                 // Two posters a row fill an iPhone screen with four titles; rows show a dozen.
-                List(items) { ItemRow(item: $0) }
+                List(shown) { ItemRow(item: $0) }
                     .listStyle(.plain)
             } else {
                 ScrollView {
                     LazyVGrid(columns: gridColumns, spacing: 26) {
-                        ForEach(items) { item in ItemCard(item: item, model: model, width: nil) }
+                        ForEach(shown) { item in ItemCard(item: item, model: model, width: nil) }
                     }
                     .pagePadding()
                 }
@@ -67,12 +69,53 @@ struct ListingPage: View {
         .pageEdges()
         .navigationTitle(listing.title)
         .navigationSubtitle(loaded ? "\(items.count) titre\(items.count > 1 ? "s" : "")" : "")
+        .toolbar {
+            ToolbarItem {
+                Menu {
+                    Picker("Trier par", selection: $order) {
+                        ForEach(ListingOrder.allCases, id: \.self) { Label($0.title, systemImage: $0.symbol).tag($0) }
+                    }
+                } label: {
+                    Label("Trier", systemImage: "arrow.up.arrow.down")
+                }
+                .help("Trier par date ou par nom")
+            }
+        }
         .task(id: listing) {
             loaded = false
             let discovery = model.discovery
             let wanted = listing
             items = await Task.detached(priority: .userInitiated) { discovery.items(wanted) }.value
             loaded = true
+        }
+    }
+}
+
+/// How a listing's titles are ordered: newest passage first, or A to Z.
+enum ListingOrder: String, CaseIterable {
+    case date, name
+
+    var title: String { self == .date ? "Date" : "Nom" }
+    var symbol: String { self == .date ? "calendar" : "textformat" }
+
+    func sorted(_ items: [ShelfItem]) -> [ShelfItem] {
+        switch self {
+        case .date: items.sorted { date($0) > date($1) }
+        case .name: items.sorted { name($0).localizedStandardCompare(name($1)) == .orderedAscending }
+        }
+    }
+
+    private func date(_ item: ShelfItem) -> Date {
+        switch item {
+        case .passage(let mention): mention.episode.date
+        case .episode(let episode, _): episode.date
+        }
+    }
+
+    private func name(_ item: ShelfItem) -> String {
+        switch item {
+        case .passage(let mention): mention.segment.displayTitle
+        case .episode(let episode, _): episode.name ?? episode.title
         }
     }
 }
