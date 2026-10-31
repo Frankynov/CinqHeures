@@ -46,10 +46,11 @@ struct ListingPage: View {
     @ViewState private var items: [ShelfItem] = []
     @ViewState private var loaded = false
     @AppStorage("listingOrder") private var order = ListingOrder.date
+    @AppStorage("listingReversed") private var reversed = false
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
-        let shown = order.sorted(items)
+        let shown = order.sorted(items, reversed: reversed)
         Group {
             if loaded && items.isEmpty {
                 ContentUnavailableView("Rien ici", systemImage: "film")
@@ -68,17 +69,30 @@ struct ListingPage: View {
         }
         .pageEdges()
         .navigationTitle(listing.title)
-        .navigationSubtitle(loaded ? "\(items.count) titre\(items.count > 1 ? "s" : "")" : "")
+        // Never empty: a subtitle that appears once the titles have loaded made iOS drop the large
+        // title into the bar a moment after the page opened.
+        .navigationSubtitle(loaded ? "\(items.count) titre\(items.count > 1 ? "s" : "")" : "Chargement…")
         .toolbar {
             ToolbarItem {
                 Menu {
-                    Picker("Trier par", selection: $order) {
-                        ForEach(ListingOrder.allCases, id: \.self) { Label($0.title, systemImage: $0.symbol).tag($0) }
+                    // Choosing the current order again flips it, so each is a button rather than a picker.
+                    ForEach(ListingOrder.allCases, id: \.self) { choice in
+                        Button {
+                            if order == choice { reversed.toggle() } else { order = choice; reversed = false }
+                        } label: {
+                            // Title, subtitle and icon as siblings: the form a menu row draws a subtitle from.
+                            Text(choice.title)
+                            if order == choice { Text(choice.direction(reversed: reversed)) }
+                            Image(systemName: order == choice ? choice.arrow(reversed: reversed) : choice.symbol)
+                        }
                     }
                 } label: {
                     Label("Trier", systemImage: "arrow.up.arrow.down")
                 }
-                .help("Trier par date ou par nom")
+                #if os(iOS)
+                .menuActionDismissBehavior(.disabled)
+                #endif
+                .help("Trier par date ou par nom ; choisir à nouveau inverse l'ordre")
             }
         }
         .task(id: listing) {
@@ -91,18 +105,29 @@ struct ListingPage: View {
     }
 }
 
-/// How a listing's titles are ordered: newest passage first, or A to Z.
+/// How a listing's titles are ordered: newest passage first, or A to Z; reversed, the other way round.
 enum ListingOrder: String, CaseIterable {
     case date, name
 
     var title: String { self == .date ? "Date" : "Nom" }
     var symbol: String { self == .date ? "calendar" : "textformat" }
 
-    func sorted(_ items: [ShelfItem]) -> [ShelfItem] {
+    /// Points the way the list runs: down for newest or A first, up when reversed.
+    func arrow(reversed: Bool) -> String { reversed ? "arrow.up" : "arrow.down" }
+
+    func direction(reversed: Bool) -> String {
         switch self {
+        case .date: reversed ? "Les plus anciens d'abord" : "Les plus récents d'abord"
+        case .name: reversed ? "De Z à A" : "De A à Z"
+        }
+    }
+
+    func sorted(_ items: [ShelfItem], reversed: Bool) -> [ShelfItem] {
+        let sorted = switch self {
         case .date: items.sorted { date($0) > date($1) }
         case .name: items.sorted { name($0).localizedStandardCompare(name($1)) == .orderedAscending }
         }
+        return reversed ? sorted.reversed() : sorted
     }
 
     private func date(_ item: ShelfItem) -> Date {
