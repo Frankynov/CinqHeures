@@ -270,18 +270,21 @@ struct ResetSheet: View {
                        detail: "Les positions de reprise et la rangée « Continuer l'écoute ». Le cache n'est pas touché.")
             }
 
+            #if os(macOS)
             HStack {
                 Spacer()
                 Button("Annuler", role: .cancel) { dismiss() }
                     .keyboardShortcut(.cancelAction)
-                Button("Effacer", role: .destructive) {
-                    let (cache, progress) = (cache, progress)
-                    dismiss()
-                    Task { await model.reset(cache: cache, progress: progress) }
-                }
-                .keyboardShortcut(.defaultAction)
-                .disabled(!cache && !progress)
+                eraseButton
+                    .keyboardShortcut(.defaultAction)
             }
+            #else
+            // A sheet is dismissed by swiping it down: no Annuler, one full-width button.
+            eraseButton
+                .buttonStyle(.borderedProminent)
+                .tint(.red)
+                .controlSize(.large)
+            #endif
         }
         .padding(24)
         #if os(macOS)
@@ -296,10 +299,24 @@ struct ResetSheet: View {
         }
     }
 
+    private var eraseButton: some View {
+        Button(role: .destructive) {
+            let (cache, progress) = (cache, progress)
+            dismiss()
+            Task { await model.reset(cache: cache, progress: progress) }
+        } label: {
+            Text("Effacer")
+                #if os(iOS)
+                .frame(maxWidth: .infinity)
+                #endif
+        }
+        .disabled(!cache && !progress)
+    }
+
     private func choice(_ isOn: Binding<Bool>, title: String, detail: String) -> some View {
         Toggle(isOn: isOn) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(title).font(.headline)
+                Text(title).font(.headline).fixedSize(horizontal: false, vertical: true)
                 Text(detail).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
         }
