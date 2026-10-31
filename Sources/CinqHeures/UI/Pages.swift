@@ -80,9 +80,14 @@ struct ListingPage: View {
                         Button {
                             if order == choice { reversed.toggle() } else { order = choice; reversed = false }
                         } label: {
+                            #if os(macOS)
+                            // A Mac menu row has no subtitle line: the direction goes in its title.
+                            Text(order == choice ? "\(choice.title) · \(choice.direction(reversed: reversed))" : choice.title)
+                            #else
                             // Title, subtitle and icon as siblings: the form a menu row draws a subtitle from.
                             Text(choice.title)
                             if order == choice { Text(choice.direction(reversed: reversed)) }
+                            #endif
                             Image(systemName: order == choice ? choice.arrow(reversed: reversed) : choice.symbol)
                         }
                     }
