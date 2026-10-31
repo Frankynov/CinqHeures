@@ -1,21 +1,23 @@
 {
-  "fill": {
-    "linear-gradient": [
-      "srgb:1.00000,0.83922,0.37647,1.00000",
-      "srgb:0.96078,0.61961,0.11765,1.00000"
-    ],
-    "orientation": {
-      "start": {
-        "x": 0.5,
-        "y": 0
-      },
-      "stop": {
-        "x": 0.5,
-        "y": 1
-      }
-    }
-  },
   "fill-specializations": [
+    {
+      "value": {
+        "linear-gradient": [
+          "srgb:1.00000,0.83922,0.37647,1.00000",
+          "srgb:0.96078,0.61961,0.11765,1.00000"
+        ],
+        "orientation": {
+          "start": {
+            "x": 0.5,
+            "y": 0
+          },
+          "stop": {
+            "x": 0.5,
+            "y": 1
+          }
+        }
+      }
+    },
     {
       "appearance": "dark",
       "value": {
@@ -38,35 +40,6 @@
   ],
   "groups": [
     {
-      "name": "bubble",
-      "layers": [
-        {
-          "name": "bubble",
-          "image-name": "bubble.svg",
-          "glass": true,
-          "image-name-specializations": [
-            {
-              "appearance": "dark",
-              "value": "bubble-dark.svg"
-            }
-          ]
-        },
-        {
-          "name": "details",
-          "image-name": "details.svg",
-          "glass": false
-        }
-      ],
-      "shadow": {
-        "kind": "neutral",
-        "opacity": 0.5
-      },
-      "translucency": {
-        "enabled": false,
-        "value": 0
-      }
-    },
-    {
       "name": "marquee",
       "layers": [
         {
@@ -74,7 +47,7 @@
           "image-name": "marquee.png",
           "glass": false,
           "position": {
-            "scale": 0.5,
+            "scale": 0.47,
             "translation-in-points": [
               0,
               0
@@ -85,6 +58,37 @@
       "shadow": {
         "kind": "layer-color",
         "opacity": 0.4
+      }
+    },
+    {
+      "name": "bubble",
+      "layers": [
+        {
+          "name": "details",
+          "image-name": "details.svg",
+          "glass": false
+        },
+        {
+          "name": "bubble",
+          "glass": true,
+          "image-name-specializations": [
+            {
+              "value": "bubble.svg"
+            },
+            {
+              "appearance": "dark",
+              "value": "bubble-dark.svg"
+            }
+          ]
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0
       }
     }
   ],

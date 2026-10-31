@@ -339,27 +339,34 @@ def write_icon_document():
     marquee = layer_marquee(side * 2, Frame(side * 2, fill=0.74, dy=-0.006))
     marquee.save(os.path.join(doc, "Assets", "marquee.png"))
     srgb = lambda c, a=1: "srgb:%.5f,%.5f,%.5f,%.5f" % (c[0] / 255, c[1] / 255, c[2] / 255, a)
+    gradient_fill = lambda top, bottom: {"linear-gradient": [srgb(top), srgb(bottom)],
+                                         "orientation": {"start": {"x": 0.5, "y": 0}, "stop": {"x": 0.5, "y": 1}}}
+    # Two things ictool taught us: the first group and the first layer are drawn on top (listed the
+    # other way round, the bubble hid its stripes and the marquee), and a specialization list only
+    # takes effect with an explicit default entry beside the dark one.
     spec = {
-        "fill": {"linear-gradient": [srgb((255, 214, 96)), srgb((245, 158, 30))],
-                 "orientation": {"start": {"x": 0.5, "y": 0}, "stop": {"x": 0.5, "y": 1}}},
         "fill-specializations": [
-            {"appearance": "dark", "value": {"linear-gradient": [srgb((22, 33, 66)), srgb((7, 11, 26))],
-                                             "orientation": {"start": {"x": 0.5, "y": 0}, "stop": {"x": 0.5, "y": 1}}}},
+            {"value": gradient_fill((255, 214, 96), (245, 158, 30))},
+            {"appearance": "dark", "value": gradient_fill((22, 33, 66), (7, 11, 26))},
         ],
         "groups": [
-            {"name": "bubble", "layers": [
-                {"name": "bubble", "image-name": "bubble.svg", "glass": True,
-                 "image-name-specializations": [{"appearance": "dark", "value": "bubble-dark.svg"}]},
-                {"name": "details", "image-name": "details.svg", "glass": False},
-            ], "shadow": {"kind": "neutral", "opacity": 0.5}, "translucency": {"enabled": False, "value": 0}},
             {"name": "marquee", "layers": [
                 {"name": "marquee", "image-name": "marquee.png", "glass": False,
-                 "position": {"scale": 0.5, "translation-in-points": [0, 0]}},
+                 "position": {"scale": 0.47, "translation-in-points": [0, 0]}},
             ], "shadow": {"kind": "layer-color", "opacity": 0.4}},
+            {"name": "bubble", "layers": [
+                {"name": "details", "image-name": "details.svg", "glass": False},
+                {"name": "bubble", "glass": True,
+                 "image-name-specializations": [{"value": "bubble.svg"}, {"appearance": "dark", "value": "bubble-dark.svg"}]},
+            ], "shadow": {"kind": "neutral", "opacity": 0.5}, "translucency": {"enabled": False, "value": 0}},
         ],
         "supported-platforms": {"squares": "shared"},
     }
     json.dump(spec, open(os.path.join(doc, "icon.json"), "w"), indent=2)
+    # The iPhone and iPad app takes the same document from its own folder (Xcode syncs iOS/App).
+    ios = os.path.join(RES, "..", "iOS", "App", "AppIcon.icon")
+    shutil.rmtree(ios, ignore_errors=True)
+    shutil.copytree(doc, ios)
 
 def write_icns():
     sets = os.path.join(RES, "AppIcon.iconset")
