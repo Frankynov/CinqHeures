@@ -47,6 +47,7 @@ struct ListingPage: View {
     @ViewState private var loaded = false
     @AppStorage("listingOrder") private var order = ListingOrder.date
     @AppStorage("listingReversed") private var reversed = false
+    @AppStorage("listingLayout") private var layout = ListingLayout.grid
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
@@ -54,10 +55,19 @@ struct ListingPage: View {
         Group {
             if loaded && items.isEmpty {
                 ContentUnavailableView("Rien ici", systemImage: "film")
-            } else if sizeClass == .compact {
-                // Two posters a row fill an iPhone screen with four titles; rows show a dozen.
-                List(shown) { ItemRow(item: $0) }
-                    .listStyle(.plain)
+            } else if sizeClass == .compact || layout == .list {
+                // Two posters a row fill an iPhone screen with four titles; rows show a dozen. On the
+                // Mac and the iPad the rows are the dense alternative to the grid.
+                List {
+                    ForEach(shown) { ItemRow(item: $0) }
+                    // A List ignores the bottom room kept for the floating player (see ShowPage).
+                    Color.clear
+                        .frame(height: sizeClass == .compact ? 0 : PlayerBar.reservedHeight)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .accessibilityHidden(true)
+                }
+                .listStyle(.plain)
             } else {
                 ScrollView {
                     LazyVGrid(columns: gridColumns, spacing: 26) {
@@ -73,6 +83,16 @@ struct ListingPage: View {
         // title into the bar a moment after the page opened.
         .navigationSubtitle(loaded ? "\(items.count) titre\(items.count > 1 ? "s" : "")" : "Chargement…")
         .toolbar {
+            if sizeClass != .compact {
+                ToolbarItem {
+                    Picker("Affichage", selection: $layout) {
+                        Label("Grille", systemImage: "square.grid.2x2").tag(ListingLayout.grid)
+                        Label("Liste", systemImage: "list.bullet").tag(ListingLayout.list)
+                    }
+                    .pickerStyle(.segmented)
+                    .help("Afficher en grille d'affiches ou en liste")
+                }
+            }
             ToolbarItem {
                 Menu {
                     // Choosing the current order again flips it, so each is a button rather than a picker.
@@ -108,6 +128,11 @@ struct ListingPage: View {
             loaded = true
         }
     }
+}
+
+/// Posters in a grid, or the denser rows (always rows on iPhone).
+enum ListingLayout: String {
+    case grid, list
 }
 
 /// How a listing's titles are ordered: newest passage first, or A to Z; reversed, the other way round.

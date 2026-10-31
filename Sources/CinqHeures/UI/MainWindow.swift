@@ -183,6 +183,7 @@ struct SidebarView: View {
                 .tag(SidebarItem.unrated)
             }
             #if os(iOS)
+            Section { ResetButton(model: model) }
             // At the end of the list, scrolling with it: as a bar it covered the last rows.
             Section { SyncStatus(model: model) }
                 .listRowBackground(Color.clear)
@@ -225,6 +226,28 @@ struct SyncStatus: View {
     }
 }
 
+#if os(iOS)
+/// The Mac's "Réinitialiser…" menu item, as a row at the end of the iPad sidebar and the iPhone's Émissions.
+struct ResetButton: View {
+    let model: AppModel
+
+    var body: some View {
+        Button {
+            model.updateCacheUsage()
+            model.showsReset = true
+        } label: {
+            Label {
+                Text("Réinitialiser…")
+                Text("Cache : \(CacheUsage.text(model.cacheUsage.total))").foregroundStyle(.secondary)
+            } icon: {
+                SidebarIcon(symbol: "arrow.counterclockwise", color: .gray)
+            }
+        }
+        .foregroundStyle(.primary)
+    }
+}
+#endif
+
 /// "Réinitialiser": the cache and the listening progress as two checkboxes, ticked in any combination.
 struct ResetSheet: View {
     let model: AppModel
@@ -261,7 +284,12 @@ struct ResetSheet: View {
             }
         }
         .padding(24)
+        #if os(macOS)
         .frame(width: 440)
+        #else
+        .frame(maxWidth: 480, alignment: .leading)
+        .presentationDetents([.medium, .large])
+        #endif
         .onAppear {
             model.updateCacheUsage()
             if model.isSyncing { cache = false }

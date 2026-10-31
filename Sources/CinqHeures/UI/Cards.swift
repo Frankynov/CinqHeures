@@ -195,18 +195,22 @@ private func filmSubtitle(_ segment: Segment, passages: Int) -> String {
     return parts.joined(separator: " · ")
 }
 
-/// A film card as a list row, for the iPhone's long lists: a small poster, the title and its stars,
-/// and the show and date it was talked about. Tapping it opens the film, like the card.
+/// A film card as a list row: a small poster, the title and its stars, and the show and date it was
+/// talked about. Tapping it opens the film, like the card. On the iPhone's narrow screen the show and
+/// date take a third line; with room (Mac, iPad) they move to the right and the row gets tighter.
 struct FilmRow: View {
     let mention: Work.Mention
     var passages = 1
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
         let segment = mention.segment
+        let wide = sizeClass != .compact
+        let source = "\(mention.episode.series.title) · \(EpisodeDates.short.string(from: mention.episode.date))"
         HStack(spacing: 12) {
-            Poster(url: segment.posterURL, width: 42)
+            Poster(url: segment.posterURL, width: wide ? 28 : 42)
             VStack(alignment: .leading, spacing: 2) {
-                Text(segment.displayTitle).font(.headline).lineLimit(2)
+                Text(segment.displayTitle).font(.headline).lineLimit(wide ? 1 : 2)
                 HStack(spacing: 6) {
                     if let stars = segment.stars {
                         Text(Segment.starString(stars)).foregroundStyle(brandOrange)
@@ -215,13 +219,16 @@ struct FilmRow: View {
                 }
                 .font(.caption)
                 .lineLimit(1)
-                Text("\(mention.episode.series.title) · \(EpisodeDates.short.string(from: mention.episode.date))")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
+                if !wide {
+                    Text(source).font(.caption).foregroundStyle(.tertiary).lineLimit(1)
+                }
+            }
+            if wide {
+                Spacer(minLength: 12)
+                Text(source).font(.callout).foregroundStyle(.secondary).lineLimit(1)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, wide ? 0 : 2)
     }
 }
 

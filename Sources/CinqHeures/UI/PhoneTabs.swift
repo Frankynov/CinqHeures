@@ -89,6 +89,7 @@ private struct PhoneShowsList: View {
                         .badge(model.unratedCount)
                 }
             }
+            Section { ResetButton(model: model) }
             Section { SyncStatus(model: model) }
                 .listRowBackground(Color.clear)
         }
