@@ -202,10 +202,11 @@ struct FilmRow: View {
     let mention: Work.Mention
     var passages = 1
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.wideRows) private var wideRows
 
     var body: some View {
         let segment = mention.segment
-        let wide = sizeClass != .compact
+        let wide = wideRows ?? (sizeClass != .compact)
         let source = "\(mention.episode.series.title) · \(EpisodeDates.short.string(from: mention.episode.date))"
         HStack(spacing: 12) {
             Poster(url: segment.posterURL, width: wide ? 28 : 42)
@@ -230,6 +231,12 @@ struct FilmRow: View {
         }
         .padding(.vertical, wide ? 0 : 2)
     }
+}
+
+extension EnvironmentValues {
+    /// Set by a list that knows its width: whether film rows have room for the show and date on the
+    /// right. Unset, the size class decides.
+    @Entry var wideRows: Bool? = nil
 }
 
 /// A shelf item as a list row: a film row, or the episode row the show pages use.

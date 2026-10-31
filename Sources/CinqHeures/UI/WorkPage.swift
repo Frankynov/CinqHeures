@@ -7,8 +7,11 @@ struct WorkPage: View {
     let title: String
     let model: AppModel
     @Environment(\.horizontalSizeClass) private var sizeClass
-    /// iPhone: a smaller poster beside the title, everything else below at full width.
-    private var compact: Bool { sizeClass == .compact }
+    @ViewState private var width: CGFloat = 0
+    /// iPhone, or any narrow column (a half-open iPhone Duo, iPad split view): a smaller poster beside
+    /// the title, everything else below at full width. The size class alone left a regular-width but
+    /// narrow column with the title squeezed beside the big poster, a word per line.
+    private var compact: Bool { sizeClass == .compact || (width > 0 && width < 560) }
 
     var body: some View {
         if let work = model.work(kind: kind, title: title), let latest = work.mentions.first {
@@ -45,6 +48,7 @@ struct WorkPage: View {
                 }
                 .padding(compact ? 16 : 28)
             }
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
             .pageEdges()
             .task(id: latest.segment.id) { model.warm(latest.episode, at: latest.segment) }
             .navigationTitle(segment.displayTitle)

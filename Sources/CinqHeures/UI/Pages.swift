@@ -2,6 +2,8 @@ import CinqHeuresCore
 import SwiftUI
 
 private let gridColumns = [GridItem(.adaptive(minimum: 150, maximum: 190), spacing: 22, alignment: .top)]
+/// For a narrow column, where 150 points left room for one poster a row.
+private let narrowGridColumns = [GridItem(.adaptive(minimum: 120, maximum: 190), spacing: 16, alignment: .top)]
 
 /// Shown instead of any page while the catalogue hasn't been downloaded yet.
 struct FirstLaunchView: View {
@@ -48,6 +50,7 @@ struct ListingPage: View {
     @AppStorage("listingOrder") private var order = ListingOrder.date
     @AppStorage("listingReversed") private var reversed = false
     @AppStorage("listingLayout") private var layout = ListingLayout.grid
+    @ViewState private var width: CGFloat = 0
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
@@ -70,13 +73,16 @@ struct ListingPage: View {
                 .listStyle(.plain)
             } else {
                 ScrollView {
-                    LazyVGrid(columns: gridColumns, spacing: 26) {
+                    LazyVGrid(columns: width > 0 && width < 560 ? narrowGridColumns : gridColumns, spacing: 26) {
                         ForEach(shown) { item in ItemCard(item: item, model: model, width: nil) }
                     }
                     .pagePadding()
                 }
             }
         }
+        // A narrow regular-width column (half-open iPhone Duo, iPad split view) gets the phone's rows.
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+        .environment(\.wideRows, width > 0 ? width >= 560 : nil)
         .pageEdges()
         .navigationTitle(listing.title)
         // Never empty: a subtitle that appears once the titles have loaded made iOS drop the large
@@ -90,6 +96,8 @@ struct ListingPage: View {
                         Label("Liste", systemImage: "list.bullet").tag(ListingLayout.list)
                     }
                     .pickerStyle(.segmented)
+                    // Two icons' worth: on iOS a toolbar picker otherwise spreads across the whole bar.
+                    .fixedSize()
                     .help("Afficher en grille d'affiches ou en liste")
                 }
             }
