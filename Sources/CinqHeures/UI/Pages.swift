@@ -45,17 +45,23 @@ struct ListingPage: View {
     let model: AppModel
     @ViewState private var items: [ShelfItem] = []
     @ViewState private var loaded = false
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
-        ScrollView {
+        Group {
             if loaded && items.isEmpty {
                 ContentUnavailableView("Rien ici", systemImage: "film")
-                    .frame(maxWidth: .infinity).padding(.top, 80)
+            } else if sizeClass == .compact {
+                // Two posters a row fill an iPhone screen with four titles; rows show a dozen.
+                List(items) { ItemRow(item: $0) }
+                    .listStyle(.plain)
             } else {
-                LazyVGrid(columns: gridColumns, spacing: 26) {
-                    ForEach(items) { item in ItemCard(item: item, model: model, width: nil) }
+                ScrollView {
+                    LazyVGrid(columns: gridColumns, spacing: 26) {
+                        ForEach(items) { item in ItemCard(item: item, model: model, width: nil) }
+                    }
+                    .pagePadding()
                 }
-                .pagePadding()
             }
         }
         .pageEdges()
@@ -143,6 +149,7 @@ struct EpisodeRow: View {
 /// What a search found: posters by kind, then the episodes whose title or summary matched.
 struct SearchPage: View {
     @Bindable var model: AppModel
+    @Environment(\.horizontalSizeClass) private var sizeClass
     private static let limit = 120
 
     var body: some View {
@@ -193,10 +200,26 @@ struct SearchPage: View {
         if !matching.isEmpty {
             VStack(alignment: .leading, spacing: 14) {
                 Text("\(title) · \(matching.count)").font(.title3.weight(.bold))
-                LazyVGrid(columns: gridColumns, spacing: 26) {
-                    ForEach(matching.prefix(Self.limit)) { work in
-                        if let first = work.mentions.first {
-                            FilmCard(mention: first, model: model, width: nil, passages: work.mentions.count)
+                if sizeClass == .compact {
+                    LazyVStack(alignment: .leading, spacing: 10) {
+                        ForEach(matching.prefix(Self.limit)) { work in
+                            if let first = work.mentions.first {
+                                NavigationLink(value: Route.work(first.segment.kind, first.segment.title)) {
+                                    FilmRow(mention: first, passages: work.mentions.count)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                Divider()
+                            }
+                        }
+                    }
+                } else {
+                    LazyVGrid(columns: gridColumns, spacing: 26) {
+                        ForEach(matching.prefix(Self.limit)) { work in
+                            if let first = work.mentions.first {
+                                FilmCard(mention: first, model: model, width: nil, passages: work.mentions.count)
+                            }
                         }
                     }
                 }

@@ -179,17 +179,63 @@ struct FilmCard: View {
         .accessibilityAddTraits(.isButton)
     }
 
-    private var subtitle: String {
+    private var subtitle: String { filmSubtitle(mention.segment, passages: passages) }
+}
+
+/// "Série", "2019 · 3 passages", "2024 · À voir".
+private func filmSubtitle(_ segment: Segment, passages: Int) -> String {
+    var parts: [String] = []
+    switch segment.kind {
+    case .tvShow: parts.append("Série")
+    case .person: parts.append("Rencontre")
+    default: if let year = segment.year { parts.append(String(year)) }
+    }
+    if passages > 1 { parts.append("\(passages) passages") }
+    else if segment.kind == .movie, let verdict = segment.spokenVerdict { parts.append(verdict) }
+    return parts.joined(separator: " · ")
+}
+
+/// A film card as a list row, for the iPhone's long lists: a small poster, the title and its stars,
+/// and the show and date it was talked about. Tapping it opens the film, like the card.
+struct FilmRow: View {
+    let mention: Work.Mention
+    var passages = 1
+
+    var body: some View {
         let segment = mention.segment
-        var parts: [String] = []
-        switch segment.kind {
-        case .tvShow: parts.append("Série")
-        case .person: parts.append("Rencontre")
-        default: if let year = segment.year { parts.append(String(year)) }
+        HStack(spacing: 12) {
+            Poster(url: segment.posterURL, width: 42)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(segment.displayTitle).font(.headline).lineLimit(2)
+                HStack(spacing: 6) {
+                    if let stars = segment.stars {
+                        Text(Segment.starString(stars)).foregroundStyle(brandOrange)
+                    }
+                    Text(filmSubtitle(segment, passages: passages)).foregroundStyle(.secondary)
+                }
+                .font(.caption)
+                .lineLimit(1)
+                Text("\(mention.episode.series.title) · \(EpisodeDates.short.string(from: mention.episode.date))")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+            }
         }
-        if passages > 1 { parts.append("\(passages) passages") }
-        else if segment.kind == .movie, let verdict = segment.spokenVerdict { parts.append(verdict) }
-        return parts.joined(separator: " · ")
+        .padding(.vertical, 2)
+    }
+}
+
+/// A shelf item as a list row: a film row, or the episode row the show pages use.
+struct ItemRow: View {
+    let item: ShelfItem
+
+    var body: some View {
+        switch item {
+        case .passage(let mention):
+            NavigationLink(value: Route.work(mention.segment.kind, mention.segment.title)) { FilmRow(mention: mention) }
+        case .episode(let episode, _):
+            NavigationLink(value: Route.episode(episode.id, highlight: nil)) { EpisodeRow(episode: episode) }
+        }
     }
 }
 
