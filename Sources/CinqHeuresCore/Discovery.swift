@@ -90,6 +90,11 @@ public struct Shelf: Identifiable, Sendable {
 public struct Discovery: Sendable {
     /// Every film, series and person passage, newest first.
     private let passages: [Work.Mention]
+    /// The film passages among them, and the newest passage of each film. Worked out once, when the
+    /// catalogue changes (off the main thread), rather than again for every shelf each time the home
+    /// page is rebuilt on the main thread.
+    private let films: [Work.Mention]
+    private let latestFilms: [Work.Mention]
     private let episodes: [Episode]
 
     public init(_ catalogue: Catalogue) {
@@ -97,15 +102,23 @@ public struct Discovery: Sendable {
         passages = catalogue.episodes.flatMap { episode in
             episode.segments.filter { $0.kind.isSubject }.map { Work.Mention(episode: episode, segment: $0) }
         }
+        films = passages.filter { $0.segment.kind == .movie }
+        latestFilms = Self.unique(films)
     }
 
-    private func films() -> [Work.Mention] { passages.filter { $0.segment.kind == .movie } }
+    /// What tells two works apart; hashed as is, without building a string for each passage.
+    private struct WorkKey: Hashable {
+        let kind: SegmentKind
+        let title: String
+    }
 
     /// One passage per work: the newest.
-    private func unique(_ list: [Work.Mention]) -> [Work.Mention] {
-        var seen = Set<String>()
-        return list.filter { seen.insert("\($0.segment.kind.rawValue)|\($0.segment.title)").inserted }
+    private static func unique(_ list: [Work.Mention]) -> [Work.Mention] {
+        var seen = Set<WorkKey>()
+        return list.filter { seen.insert(WorkKey(kind: $0.segment.kind, title: $0.segment.title)).inserted }
     }
+
+    private func unique(_ list: [Work.Mention]) -> [Work.Mention] { Self.unique(list) }
 
     private func hasPoster(_ mention: Work.Mention) -> Bool { mention.segment.posterURL != nil }
 
@@ -113,12 +126,11 @@ public struct Discovery: Sendable {
 
     /// Everything in a listing, in the order its page shows it.
     public func items(_ listing: Listing, now: Date = Date()) -> [ShelfItem] {
-        let films = films()
         let thisYear = EpisodeDates.calendar.component(.year, from: now)
         let chosen: [Work.Mention]
         switch listing {
         case .latest:
-            chosen = unique(films)
+            chosen = latestFilms
         case .stars(let n):
             chosen = unique(films.filter { $0.segment.stars == n })
         case .unrated:
@@ -133,11 +145,13 @@ public struct Discovery: Sendable {
             chosen = unique(films.filter { $0.episode.series == .codLive })
         case .repeats:
             var counts: [String: Int] = [:]
-            for film in films { counts["\(film.segment.title)", default: 0] += 1 }
+            for film in films { counts[film.segment.title, default: 0] += 1 }
             chosen = unique(films.filter { counts[$0.segment.title, default: 0] >= 2 })
                 .sorted { counts[$0.segment.title, default: 0] > counts[$1.segment.title, default: 0] }
         case .decade(let decade):
-            chosen = unique(films.filter { $0.segment.year.map(Decade.of(year:)) == decade })
+            // The year is in the title, the same in every passage of a film: the newest passages
+            // of the decade's films are the decade's newest passages.
+            chosen = latestFilms.filter { $0.segment.year.map(Decade.of(year:)) == decade }
                 .sorted { ($0.segment.stars ?? -1) > ($1.segment.stars ?? -1) }
         }
         return chosen.map(ShelfItem.passage)
@@ -183,16 +197,16 @@ public struct Discovery: Sendable {
     /// A well-rated review to feature at the top of the home page.
     public func hero(seed: UInt64) -> Work.Mention? {
         var rng = SeededGenerator(seed: seed &+ 7)
-        return unique(films().filter { ($0.segment.stars ?? 0) >= 3 && hasPoster($0) }).randomElement(using: &rng)
+        return unique(films.filter { ($0.segment.stars ?? 0) >= 3 && hasPoster($0) }).randomElement(using: &rng)
     }
 
     /// The decades that have films, each with some posters for its tile.
     public func decadeTiles(seed: UInt64) -> [DecadeTile] {
         var rng = SeededGenerator(seed: seed &+ 13)
-        let all = unique(films())
+        // Each film's decade read once, rather than once per decade.
+        let byDecade = Dictionary(grouping: latestFilms) { $0.segment.year.map(Decade.of(year:)) }
         return Decade.all.compactMap { decade in
-            let inDecade = all.filter { $0.segment.year.map(Decade.of(year:)) == decade }
-            guard !inDecade.isEmpty else { return nil }
+            guard let inDecade = byDecade[decade], !inDecade.isEmpty else { return nil }
             let posters = inDecade.compactMap(\.segment.posterURL)
             return DecadeTile(decade: decade, count: inDecade.count, posters: Array(posters.shuffled(using: &rng).prefix(3)))
         }
