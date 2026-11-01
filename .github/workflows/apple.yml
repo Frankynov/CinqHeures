@@ -8,9 +8,14 @@ on:
   workflow_dispatch:
     inputs:
       measure:
-        description: Also launch the apps and record CPU, memory and screenshots
-        type: boolean
-        default: true
+        description: Launch the apps and record CPU, memory, stacks and screenshots
+        type: choice
+        options: [both, mac, ios]
+        default: both
+      ios_devices:
+        description: Simulators to launch, in order (the iPad starts from the iPhone's catalogue)
+        type: string
+        default: iphone ipad
 
 concurrency:
   group: apple-${{ github.ref }}-${{ github.event_name }}
@@ -37,12 +42,12 @@ jobs:
       - name: Build the Mac app
         run: ./build.sh
       - name: Launch it, record CPU and memory
-        if: github.event_name == 'workflow_dispatch' && inputs.measure
+        if: github.event_name == 'workflow_dispatch' && inputs.measure != 'ios'
         run: Tools/ci/measure-mac.sh
       - name: Core tests
         run: ./test.sh
       - name: Keep the measurements
-        if: always() && github.event_name == 'workflow_dispatch' && inputs.measure
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.measure != 'ios'
         uses: actions/upload-artifact@v5
         with:
           name: health-mac
@@ -66,10 +71,12 @@ jobs:
             -destination 'generic/platform=iOS Simulator' -derivedDataPath build/ios \
             CODE_SIGNING_ALLOWED=NO -quiet build
       - name: Launch it on an iPhone and an iPad, record CPU and memory
-        if: github.event_name == 'workflow_dispatch' && inputs.measure
+        if: github.event_name == 'workflow_dispatch' && inputs.measure != 'mac'
+        env:
+          IOS_DEVICES: ${{ inputs.ios_devices }}
         run: Tools/ci/measure-ios.sh build/ios/Build/Products/Release-iphonesimulator/5heures.app
       - name: Keep the measurements
-        if: always() && github.event_name == 'workflow_dispatch' && inputs.measure
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.measure != 'mac'
         uses: actions/upload-artifact@v5
         with:
           name: health-ios

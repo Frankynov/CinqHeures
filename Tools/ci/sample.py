@@ -63,19 +63,53 @@ def stacks(pid, path, binaries):
     except (OSError, subprocess.TimeoutExpired):
         return ["(no stack sample)"]
     sections, current = {}, None
+    graph = []
     for line in text.splitlines():
-        if line.startswith("Total number in stack"):
+        if line.startswith("Call graph:"):
+            current = graph
+        elif line.startswith("Total number in stack"):
             current = sections.setdefault("inclusive", [])
         elif line.startswith("Sort by top of stack"):
             current = sections.setdefault("top", [])
-        elif not line.strip() or line.startswith("Binary Images"):
+        elif line.startswith("Binary Images"):
             current = None
+        elif not line.strip():
+            current = graph if current is graph else None
+        elif current is graph:
+            graph.append(line)
         elif current is not None:
             current.append(" ".join(line.split()))
     busiest = [l for l in sections.get("top", []) if l.split(" ")[0] not in IDLE][:12]
     ours = [l for l in sections.get("inclusive", []) if any(f"(in {b})" in l for b in binaries)][:15]
-    return ["Busiest frames (samples at the top of a stack, idle waits left out):", *busiest, "",
-            "The app's own functions most often on a stack (samples):", *ours]
+    lines = ["Busiest frames (samples at the top of a stack, idle waits left out):", *busiest, "",
+             "The app's own functions most often on a stack (samples):", *ours]
+    if busiest:
+        lines += ["", "Heaviest call path to the busiest frame (outermost first):",
+                  *heaviest_path(graph, busiest[0].split(" (in ")[0])]
+    return lines
+
+
+def heaviest_path(graph, symbol):
+    """The chain of callers above the call-graph line for `symbol` with the most samples."""
+    def depth(line):
+        return next((i for i, c in enumerate(line) if c.isdigit()), len(line))
+
+    def count(line):
+        digits = line[depth(line):].split(" ", 1)[0]
+        return int(digits) if digits.isdigit() else 0
+
+    candidates = [i for i, line in enumerate(graph) if symbol in line]
+    if not candidates:
+        return ["(not found in the call graph)"]
+    target = max(candidates, key=lambda i: count(graph[i]))
+    path, level = [graph[target]], depth(graph[target])
+    for line in reversed(graph[:target]):
+        if depth(line) < level:
+            path.append(line)
+            level = depth(line)
+    path.reverse()
+    # The innermost callers say the most: keep the last 28 frames, shortened.
+    return [" ".join(line[depth(line):].split())[:160] for line in path[-28:]]
 
 
 def summary_row(name, rows):
