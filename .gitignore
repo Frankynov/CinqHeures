@@ -10,3 +10,5 @@ dist/
 # Xcode per-user state
 xcuserdata/
 *.xcuserstate
+# Python bytecode (Tools/)
+__pycache__/
