@@ -14,7 +14,7 @@ IPHONE=$(python3 Tools/ci/simulator.py iPhone)
 IPAD=$(python3 Tools/ci/simulator.py iPad)
 SAVED=$(mktemp -d)
 
-run() {   # device, label, seconds, phases, screenshot times
+run() {   # device, label, seconds, phases, screenshot times, stack sample times
   local device=$1 label=$2 data pid
   xcrun simctl boot "$device" 2>/dev/null || true
   xcrun simctl bootstatus "$device" -b >/dev/null
@@ -25,10 +25,13 @@ run() {   # device, label, seconds, phases, screenshot times
     data=$(xcrun simctl get_app_container "$device" "$BUNDLE" data)
     mkdir -p "$data/Library/Application Support"
     cp -R "$SAVED/CinqHeures" "$data/Library/Application Support/"
+    ls -l "$data/Library/Application Support/CinqHeures"
   fi
+  echo "$label: launching at $(date +%T)"
   pid=$(xcrun simctl launch "$device" "$BUNDLE" | awk '{print $NF}')
   python3 Tools/ci/sample.py --pid "$pid" --seconds "$3" --label "$label" --out "$OUT" \
-    --phases "$4" --shot-at "$5" --shot "xcrun simctl io $device screenshot {path}"
+    --phases "$4" --shot-at "$5" --shot "xcrun simctl io $device screenshot {path}" \
+    --stacks-at "$6" --binary 5heures
   xcrun simctl ui "$device" appearance dark
   sleep 4
   xcrun simctl io "$device" screenshot "$OUT/$label-dark.png"
@@ -40,5 +43,5 @@ run() {   # device, label, seconds, phases, screenshot times
   xcrun simctl shutdown "$device" 2>/dev/null || true
 }
 
-run "$IPHONE" iphone-first-launch 120 "0-30,30-80,80-120" "20,60,115"
-run "$IPAD" ipad-second-launch 90 "0-20,20-60,60-90" "30,85"
+run "$IPHONE" iphone-first-launch 120 "0-30,30-80,80-120" "20,60,115" "15,90"
+run "$IPAD" ipad-second-launch 90 "0-20,20-60,60-90" "30,85" "8,45"

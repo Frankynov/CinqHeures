@@ -47,6 +47,37 @@ def footprint(pid):
     return None
 
 
+# Frames where a thread waits rather than works: left out of the busiest frames.
+IDLE = ("mach_msg2_trap", "mach_msg_trap", "__psynch_cvwait", "__workq_kernreturn", "kevent_id", "kevent64",
+        "__semwait_signal", "__select", "semaphore_wait_trap", "semaphore_timedwait_trap", "__ulock_wait",
+        "__ulock_wait2", "poll", "__recvfrom", "__psynch_mutexwait", "__sigsuspend_nocancel", "read")
+
+
+def stacks(pid, path, binaries):
+    """Samples the process's call stacks for 3 s with macOS's `sample` and returns, as text lines, the
+    busiest frames (idle waits left out) and the app's own functions most often on the stack."""
+    try:
+        subprocess.run(["sample", str(pid), "3", "-mayDie", "-file", path], capture_output=True, text=True, timeout=90)
+        with open(path) as report:
+            text = report.read()
+    except (OSError, subprocess.TimeoutExpired):
+        return ["(no stack sample)"]
+    sections, current = {}, None
+    for line in text.splitlines():
+        if line.startswith("Total number in stack"):
+            current = sections.setdefault("inclusive", [])
+        elif line.startswith("Sort by top of stack"):
+            current = sections.setdefault("top", [])
+        elif not line.strip() or line.startswith("Binary Images"):
+            current = None
+        elif current is not None:
+            current.append(" ".join(line.split()))
+    busiest = [l for l in sections.get("top", []) if l.split(" ")[0] not in IDLE][:12]
+    ours = [l for l in sections.get("inclusive", []) if any(f"(in {b})" in l for b in binaries)][:15]
+    return ["Busiest frames (samples at the top of a stack, idle waits left out):", *busiest, "",
+            "The app's own functions most often on a stack (samples):", *ours]
+
+
 def summary_row(name, rows):
     if not rows:
         return f"| {name} | – | – | – | – |"
@@ -66,10 +97,14 @@ def main():
     parser.add_argument("--phases", default="", help="comma-separated start-end windows, in seconds")
     parser.add_argument("--shot", default="", help="screenshot command, {path} is replaced")
     parser.add_argument("--shot-at", default="", help="comma-separated times for the screenshots")
+    parser.add_argument("--stacks-at", default="", help="comma-separated times for 3-second stack samples")
+    parser.add_argument("--binary", action="append", default=[], help="the app's binary name, for its own frames")
     args = parser.parse_args()
     os.makedirs(args.out, exist_ok=True)
 
     shots = sorted(float(t) for t in args.shot_at.split(",") if t.strip()) if args.shot else []
+    samples = sorted(float(t) for t in args.stacks_at.split(",") if t.strip())
+    stack_text = []
     rows = []
     start = time.monotonic()
     previous = None
@@ -91,6 +126,11 @@ def main():
         while shots and elapsed >= shots[0]:
             path = os.path.join(args.out, f"{args.label}-{int(shots.pop(0))}s.png")
             subprocess.run(args.shot.replace("{path}", path), shell=True)
+        while samples and elapsed >= samples[0]:
+            at = int(samples.pop(0))
+            lines = stacks(args.pid, os.path.join(args.out, f"{args.label}-stacks-{at}s.txt"), args.binary)
+            stack_text += ["", f"Stacks at {at} s:", "```", *lines, "```"]
+            print("\n".join(stack_text[-(len(lines) + 4):]), flush=True)
         tick += args.interval
         time.sleep(max(0.0, tick - time.monotonic()))
 
@@ -109,6 +149,7 @@ def main():
     lines.append(summary_row("whole run", rows))
     if total:
         lines += ["", f"Footprint at the end (Activity Monitor's Memory column): {total}"]
+    lines += stack_text
     text = "\n".join(lines) + "\n\n"
     with open(os.path.join(args.out, f"{args.label}.md"), "w") as md:
         md.write(text)
