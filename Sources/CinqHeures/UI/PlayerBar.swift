@@ -601,31 +601,43 @@ struct FullPlayer: View {
                 .buttonStyle(.plain)
                 .disabled(player.phase != .ready)
 
-                HStack {
+                // Three icons in equal thirds, like the Music app's bottom row: the speed as "1×",
+                // AirPlay, the episode's programme. Words made the row lopsided.
+                HStack(spacing: 0) {
                     Menu {
                         ForEach(PlayerModel.speeds, id: \.self) { speed in
                             Button { player.rate = speed } label: {
-                                Text((speed == speed.rounded() ? String(format: "%.0f", speed) : String(format: "%g", speed)) + "×")
+                                Text(speedText(speed))
                                 if speed == player.rate { Image(systemName: "checkmark") }
                             }
                         }
                     } label: {
-                        Label("Vitesse " + (player.rate == player.rate.rounded() ? String(format: "%.0f", player.rate) : String(format: "%g", player.rate)) + "×",
-                              systemImage: "gauge.with.dots.needle.67percent")
+                        Text(speedText(player.rate))
+                            .font(.body.weight(.semibold).monospacedDigit())
+                            .frame(minWidth: 44, minHeight: 34)
                     }
-                    Spacer()
+                    .accessibilityLabel("Vitesse de lecture")
+                    .frame(maxWidth: .infinity)
+                    AirPlayButton(player: player, size: 34, tint: brandOrange)
+                        .frame(maxWidth: .infinity)
                     Button(action: openEpisode) {
-                        Label("Ouvrir l'épisode", systemImage: "list.bullet")
+                        Image(systemName: "list.bullet")
+                            .font(.system(size: 20, weight: .medium))
+                            .frame(minWidth: 44, minHeight: 34)
                     }
+                    .accessibilityLabel("Ouvrir l'épisode")
+                    .frame(maxWidth: .infinity)
                 }
-                .font(.callout.weight(.medium))
-                // In the middle of the row, whatever the widths of the labels on either side.
-                .overlay { AirPlayButton(player: player, size: 34, tint: brandOrange) }
+                .foregroundStyle(brandOrange)
                 .padding(.horizontal, 28)
             }
         }
         .padding(.top, 12)
         .padding(.bottom, 20)
+    }
+
+    private func speedText(_ speed: Float) -> String {
+        (speed == speed.rounded() ? String(format: "%.0f", speed) : String(format: "%g", speed)) + "×"
     }
 }
 #endif
