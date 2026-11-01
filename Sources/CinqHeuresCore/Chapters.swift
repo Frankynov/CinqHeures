@@ -194,8 +194,18 @@ public struct ChapterLibrary: Codable, Sendable {
         return now.timeIntervalSince(entry.checked) > (recent ? 6 * 3600 : 7 * 86_400)
     }
 
-    public mutating func record(_ chapters: [AudioChapter], for episode: Episode, at now: Date = Date()) {
-        entries[episode.audioURL.absoluteString] = Entry(chapters: chapters, checked: now)
+    /// When the episode's file was last read, if it was.
+    public func lastRead(_ episode: Episode) -> Date? {
+        entries[episode.audioURL.absoluteString]?.checked
+    }
+
+    /// Returns whether the chapters differ from the ones found last time.
+    @discardableResult
+    public mutating func record(_ chapters: [AudioChapter], for episode: Episode, at now: Date = Date()) -> Bool {
+        let key = episode.audioURL.absoluteString
+        let changed = entries[key]?.chapters != chapters
+        entries[key] = Entry(chapters: chapters, checked: now)
+        return changed
     }
 
     /// A Dayez episode with each film starting where its chapter does (see `Episode.startingFilms(at:)`);

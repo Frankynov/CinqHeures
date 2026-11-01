@@ -154,8 +154,14 @@ private func dayezEpisode(_ name: String, url: String = "https://example.org/day
         var library = ChapterLibrary()
         #expect(library.needsLookup(recent, now: now) && library.needsLookup(old, now: now))
         #expect(library.apply(to: recent) == recent)                  // not read yet: unchanged
+        #expect(library.lastRead(recent) == nil)
 
-        library.record(ID3Chapters.chapters(in: Tag.dayez()), for: recent, at: now)
+        library.record([], for: recent, at: now.addingTimeInterval(-60))
+        // The file replaced with one that has chapters: they're news; the same ones read again aren't.
+        let added = library.record(ID3Chapters.chapters(in: Tag.dayez()), for: recent, at: now)
+        let readAgain = library.record(ID3Chapters.chapters(in: Tag.dayez()), for: recent, at: now)
+        #expect(added && !readAgain)
+        #expect(library.lastRead(recent) == now)
         library.record([], for: old, at: now)
         #expect(library.apply(to: recent).segments.map(\.start) == [41.5, 200.25, 381])
         #expect(library.apply(to: old) == old)

@@ -112,6 +112,9 @@ review's time follows: the marks and the film's name on the bar, the episode's p
 critique", the film playing on the lock screen. What was found is kept
 (`~/Library/Application Support/CinqHeures/chapters.json`); a file is read again after 6 hours when
 its episode is under two months old, after a week otherwise, so chapters added or moved later show up.
+Opening the episode or one of its films, or playing it, reads the file again at once (at most once a
+minute), so a file replaced with a chaptered copy shows its chapters the next time it's looked at; an
+episode already playing takes the new starts too.
 
 ### Film details from TMDB
 

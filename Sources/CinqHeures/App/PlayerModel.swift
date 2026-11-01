@@ -108,6 +108,17 @@ final class PlayerModel {
         load(episode, start: start)
     }
 
+    /// The episode playing, with what was learnt about it since it started (where its films start, from
+    /// the file's chapters; their TMDB details): the bar's marks and the film being discussed follow.
+    func update(_ episode: Episode) {
+        guard self.episode?.id == episode.id, self.episode != episode else { return }
+        self.episode = episode
+        requestedSegment = requestedSegment.flatMap { requested in episode.segments.first { $0.id == requested.id } }
+        let segment = episode.segments.last { ($0.start ?? .infinity) <= currentTime + 0.5 }
+        if segment?.id != currentSegmentID { currentSegmentID = segment?.id }
+        updateNowPlaying()
+    }
+
     /// Stops and unloads whatever is playing (the player bar goes back to "Rien en lecture").
     func stop() {
         loadTask?.cancel()

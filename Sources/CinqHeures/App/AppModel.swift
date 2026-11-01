@@ -131,6 +131,8 @@ final class AppModel {
     private var chapters = ChapterLibrary.load()
     private let chapterReader = ChapterReader()
     private var chapterLookup: Task<Void, Never>?
+    /// The files `lookUpChapters(of:)` is reading.
+    private var chapterChecks: Set<URL> = []
     private var lastFeedRefresh = Date.distantPast
     private var index = SearchIndex(Catalogue())
     private(set) var discovery = Discovery(Catalogue()) {
@@ -264,11 +266,14 @@ final class AppModel {
 
     func play(_ episode: Episode, from segment: Segment? = nil) {
         player.play(episode, from: segment)
+        lookUpChapters(of: episode)
     }
 
-    /// The review someone is looking at, likely to be played next: warm its file on 5heures.be's server.
+    /// The review someone is looking at, likely to be played next: warm its file on 5heures.be's server,
+    /// or read a Dayez file's chapters again.
     func warm(_ episode: Episode, at segment: Segment? = nil) {
         player.warm(episode, at: segment)
+        lookUpChapters(of: episode)
     }
 
     /// Pushes a page in the current tab (iPhone) or the content column (Mac, iPad).
@@ -416,13 +421,18 @@ final class AppModel {
     // MARK: Film details from TMDB
 
     /// Dayez's episodes with what TMDB knows about their films (title, poster, synopsis, director),
-    /// and where each film starts in the file.
-    private func applyDetails() {
+    /// and where each film starts in the file. The one playing takes them too. Returns whether any changed.
+    @discardableResult
+    private func applyDetails() -> Bool {
         let dayez = catalogue.episodes.filter { $0.series == .dayez }
-        guard !dayez.isEmpty else { return }
+        guard !dayez.isEmpty else { return false }
         let enriched = dayez.map(details)
-        guard enriched.map(\.segments) != dayez.map(\.segments) else { return }
+        guard enriched.map(\.segments) != dayez.map(\.segments) else { return false }
         catalogue.replaceEpisodes(of: .dayez, with: enriched, at: catalogue.updatedAt ?? Date())
+        if let playing = player.episode, let updated = enriched.first(where: { $0.id == playing.id }) {
+            player.update(updated)
+        }
+        return true
     }
 
     /// Looks up, in the background, the films not asked about yet. Paced well under the proxy's limit
@@ -516,15 +526,31 @@ final class AppModel {
                     if failures == 3 { break }
                 }
             }
-            try? chapters.save()
-            let before = catalogue.episodes
-            applyDetails()
-            if catalogue.episodes != before {
-                try? catalogue.save(to: Catalogue.defaultLocation)
-                rebuildIndex()
-            }
+            chaptersRead()
             chapterLookup = nil
         }
+    }
+
+    /// Reads one Dayez file again as soon as its episode, or a film in it, is opened or played, unless
+    /// that was done in the last minute: Franky adds chapters to a file after uploading it, which the
+    /// reads above would only notice hours later.
+    func lookUpChapters(of episode: Episode) {
+        guard episode.series == .dayez, !chapterChecks.contains(episode.audioURL),
+              Date().timeIntervalSince(chapters.lastRead(episode) ?? .distantPast) > 60 else { return }
+        chapterChecks.insert(episode.audioURL)
+        Task { [chapterReader] in
+            defer { chapterChecks.remove(episode.audioURL) }
+            guard let found = try? await chapterReader.chapters(of: episode.audioURL) else { return }
+            if chapters.record(found, for: episode) { chaptersRead() }
+        }
+    }
+
+    /// What was found is kept, and the films start at their chapters everywhere.
+    private func chaptersRead() {
+        try? chapters.save()
+        guard applyDetails() else { return }
+        try? catalogue.save(to: Catalogue.defaultLocation)
+        rebuildIndex()
     }
 
     func refresh(everything: Bool) async {
