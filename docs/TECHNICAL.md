@@ -39,7 +39,9 @@ few `#if os(macOS)` blocks: the player becomes two rows on narrow screens and us
 volume buttons, the hero banner drops its poster when space runs out. On iPhone the full player shows
 the score of the film being discussed under its title (stars and the hosts' own words); on iPad the
 floating bar shows the stars after the show and date, when they fit. The audio session is activated
-when playback starts, not at launch, so opening the app doesn't stop another app's audio.
+when play is pressed, not at launch, so opening the app doesn't stop another app's audio. Until then
+the AirPlay button is a dimmed icon: with the session inactive, AVKit's route picker handled its own
+route notifications in a loop, a third of a core and more on an idle iPad.
 
 ```
 cd iOS && xcodebuild -scheme 5heures -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17' build
