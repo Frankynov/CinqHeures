@@ -31,9 +31,13 @@ final class PlayerModel {
     /// Changes only when playback crosses into another segment, so the lists can follow it without
     /// redrawing twice a second.
     private(set) var currentSegmentID: Int?
-    /// Bumped when saved positions are forgotten, so "Continuer l'écoute" redraws (the positions
-    /// themselves live in UserDefaults, which views can't observe).
+    /// Bumped whenever "Continuer l'écoute" would show something else: an episode joins it or moves to
+    /// its front, is paused at a new place, is finished or forgotten (the positions themselves live in
+    /// UserDefaults, which views can't observe). Not at every save, which would redraw the home page
+    /// every five seconds.
     private(set) var progressRevision = 0
+    /// The episode "Continuer l'écoute" was last redrawn for, and whether it was listed then.
+    private var shelfState: (id: Int, listed: Bool)? = nil
     var rate: Float = 1 {
         didSet { if isPlaying { player.rate = rate }; UserDefaults.standard.set(rate, forKey: "rate") }
     }
@@ -202,9 +206,18 @@ final class PlayerModel {
         }
         guard requested == generation else { return }
         tick(player.currentTime().seconds)
+        activateAudioSession()
         player.playImmediately(atRate: rate)
         isPlaying = true
         updateNowPlaying()
+    }
+
+    /// iPhone and iPad: the app takes over the audio (pausing another app's music or podcast) only
+    /// when it starts playing, not as soon as it's opened.
+    private func activateAudioSession() {
+        #if os(iOS)
+        try? AVAudioSession.sharedInstance().setActive(true)
+        #endif
     }
 
     private func seekExactly(to seconds: Double) async {
@@ -223,6 +236,7 @@ final class PlayerModel {
         } else {
             // Finished: play again from the start rather than doing nothing.
             if duration > 0, currentTime >= duration - 1 { seek(to: 0) }
+            activateAudioSession()
             player.playImmediately(atRate: rate)
             isPlaying = true
         }
@@ -329,6 +343,12 @@ final class PlayerModel {
             lengths[String(episode.id)] = duration
             UserDefaults.standard.set(lengths, forKey: Self.lengthsKey)
         }
+        // "Continuer l'écoute" lists an episode once it's a minute in (see `unfinished`), newest first.
+        let listed = currentTime > 60
+        if !isPlaying || shelfState?.id != episode.id || shelfState?.listed != listed {
+            shelfState = (episode.id, listed)
+            progressRevision += 1
+        }
     }
 
     private static let lengthsKey = "episodeLengths"
@@ -354,6 +374,7 @@ final class PlayerModel {
             UserDefaults.standard.removeObject(forKey: key)
         }
         lastSaved = 0
+        shelfState = nil
         progressRevision += 1
     }
 
@@ -362,6 +383,7 @@ final class PlayerModel {
         var positions = UserDefaults.standard.dictionary(forKey: Self.positionsKey) as? [String: Double] ?? [:]
         positions[String(episode.id)] = nil
         UserDefaults.standard.set(positions, forKey: Self.positionsKey)
+        shelfState = nil
         progressRevision += 1
     }
 

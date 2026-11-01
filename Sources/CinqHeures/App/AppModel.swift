@@ -1,6 +1,11 @@
 import CinqHeuresCore
 import Foundation
 import Observation
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
 
 /// A row of the sidebar. Not an optional `Series` with `nil` for "all": a List selection can't be nil.
 enum SidebarItem: Hashable {
@@ -146,12 +151,23 @@ final class AppModel {
         rebuildIndex()
         updateCacheUsage()
         // Posters pile up while browsing: measure again now and then, so the menu's figure is current.
+        // Only while the app is in front: a walk through thousands of files every 20 seconds, with
+        // the app in the background (playing on a locked iPhone, say), was work for nobody.
         Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(20))
-                self?.updateCacheUsage()
+                if Self.isInFront { self?.updateCacheUsage() }
             }
         }
+    }
+
+    /// The app is the active one on the Mac, or on screen on iPhone and iPad.
+    private static var isInFront: Bool {
+        #if os(macOS)
+        NSApplication.shared.isActive
+        #else
+        UIApplication.shared.applicationState == .active
+        #endif
     }
 
     var isSyncing: Bool { if case .running = sync { true } else { false } }
@@ -427,13 +443,18 @@ final class AppModel {
             // One feed being down (Franky's server, say) doesn't keep the other from updating, and an
             // empty answer never wipes what's known.
             guard let episodes = try? await feed.episodes(), !episodes.isEmpty else { continue }
-            catalogue.replaceEpisodes(of: feed.series, with: episodes.map(films.enrich), at: catalogue.updatedAt ?? Date())
+            let fresh = episodes.map(films.enrich)
+            // Most times nothing is new: then nothing is saved or indexed again, and the home page
+            // isn't rebuilt under the listener's eyes.
+            guard Set(fresh) != Set(catalogue.episodes.filter { $0.series == feed.series }) else { continue }
+            catalogue.replaceEpisodes(of: feed.series, with: fresh, at: catalogue.updatedAt ?? Date())
             changed = true
         }
-        guard changed else { return }
-        try? catalogue.save(to: Catalogue.defaultLocation)
-        rebuildIndex()
-        lookUpFilms()          // this week's three films
+        if changed {
+            try? catalogue.save(to: Catalogue.defaultLocation)
+            rebuildIndex()
+        }
+        lookUpFilms()          // this week's three films, and any not found last time
     }
 
     func refresh(everything: Bool) async {

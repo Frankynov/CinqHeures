@@ -8,8 +8,9 @@ struct CinqHeuresiOSApp: App {
 
     init() {
         // Audio keeps playing with the screen locked or another app in front, like any podcast app.
+        // The session is only activated when playback starts (PlayerModel): activating it here
+        // stopped whatever another app was playing as soon as 5heures was opened.
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, policy: .longFormAudio)
-        try? AVAudioSession.sharedInstance().setActive(true)
         // Segments as wide as their words: split evenly, "Personnalités" in the search scopes was cut off.
         UISegmentedControl.appearance().apportionsSegmentWidthsByContent = true
     }

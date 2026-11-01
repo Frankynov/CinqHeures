@@ -16,6 +16,10 @@ struct MainWindow: View {
             PhoneTabs(model: model).modifier(AppBehaviors(model: model))
         } else {
             splitLayout
+                // An iPad window widened out of the tabs: the split view shows Accueil's stack only, so
+                // pages must now be pushed there. Left on Émissions or Recherche, taps on posters,
+                // "Tout voir" or the player went to a stack nobody could see.
+                .onAppear { model.phoneTab = .home }
         }
         #else
         splitLayout
