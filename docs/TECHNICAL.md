@@ -59,9 +59,11 @@ macOS 15+, Swift 6, Command Line Tools only (no Xcode).
 GitHub Actions (`.github/workflows/apple.yml`, macOS runners with Xcode) builds the Mac app, runs the
 core tests and builds the iPhone/iPad app for the simulator on every push. Run it by hand (Actions ›
 Apple builds › Run workflow) and it also launches the Mac app (a first launch, then a warm one) and
-the app on an iPhone and an iPad simulator, records CPU and memory every two seconds and takes
-screenshots: tables in the run's summary, files in its artifacts (`Tools/ci/`). Once the app has run
-there, the core tests also time searches, the home page rebuild and a sort by name on the real catalogue.
+the app on an iPhone and an iPad simulator (or only some of them, see the run's options), records CPU
+and memory every two seconds, samples the call stacks at a few moments (busiest frames, and the call
+path to the busiest one) and takes screenshots: tables in the run's summary, files in its artifacts
+(`Tools/ci/`). Once the app has run there, the core tests also time searches, the home page rebuild and
+a sort by name on the real catalogue.
 
 First launch downloads the catalogue (~40 requests, ~4 MB saved in
 `~/Library/Application Support/CinqHeures/catalogue.json`); later launches refresh only the newest
