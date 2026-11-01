@@ -137,8 +137,6 @@ private struct SegmentRow: View {
                 Text(segment.title)
                     .font(isSubject ? .body.weight(.medium) : .body)
                     .foregroundStyle(isSubject ? .primary : .secondary)
-                    .onTapGesture { if isSubject { model.open(.work(segment.kind, segment.title)) } }
-                    .help(isSubject ? "Voir la page de ce titre" : "")
                 HStack(spacing: 6) {
                     if segment.kind != .movie && isSubject {
                         Label(segment.kind.label, systemImage: segment.kind.symbol).labelStyle(.titleAndIcon)
@@ -152,7 +150,13 @@ private struct SegmentRow: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             }
-            Spacer()
+            // The whole block, up to the buttons, opens the film, series or person, as a row does
+            // everywhere else: the title's own words were a small target, with a finger above all.
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .onTapGesture { if isSubject { model.open(.work(segment.kind, segment.title)) } }
+            .help(isSubject ? "Voir la page de ce titre" : "")
+            .accessibilityAddTraits(isSubject ? .isButton : [])
             if isPlaying {
                 Image(systemName: "speaker.wave.2.fill").foregroundStyle(Color.accentColor)
             }

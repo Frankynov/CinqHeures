@@ -50,7 +50,10 @@ struct ListingPage: View {
     @AppStorage("listingOrder") private var order = ListingOrder.date
     @AppStorage("listingReversed") private var reversed = false
     @AppStorage("listingLayout") private var layout = ListingLayout.grid
-    @ViewState private var width: CGFloat = 0
+    /// Whether the page has room for full-size grid cells and for the show and date on the right of
+    /// each row; `nil` until it's laid out. A yes or no rather than the width itself: the width
+    /// changes at every step of a window resize, and each change redrew and re-sorted the page.
+    @ViewState private var isWide: Bool? = nil
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
@@ -73,7 +76,7 @@ struct ListingPage: View {
                 .listStyle(.plain)
             } else {
                 ScrollView {
-                    LazyVGrid(columns: width > 0 && width < 560 ? narrowGridColumns : gridColumns, spacing: 26) {
+                    LazyVGrid(columns: isWide == false ? narrowGridColumns : gridColumns, spacing: 26) {
                         ForEach(shown) { item in ItemCard(item: item, model: model, width: nil) }
                     }
                     .pagePadding()
@@ -81,8 +84,8 @@ struct ListingPage: View {
             }
         }
         // A narrow regular-width column (half-open iPhone Duo, iPad split view) gets the phone's rows.
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
-        .environment(\.wideRows, width > 0 ? width >= 560 : nil)
+        .onGeometryChange(for: Bool?.self) { $0.size.width > 0 ? $0.size.width >= 560 : nil } action: { isWide = $0 }
+        .environment(\.wideRows, isWide)
         .pageEdges()
         .navigationTitle(listing.title)
         // Never empty: a subtitle that appears once the titles have loaded made iOS drop the large
@@ -172,7 +175,10 @@ enum ListingOrder: String, CaseIterable {
     func sorted(_ items: [ShelfItem], reversed: Bool) -> [ShelfItem] {
         let sorted = switch self {
         case .date: items.sorted { date($0) > date($1) }
-        case .name: items.sorted { name($0).localizedStandardCompare(name($1)) == .orderedAscending }
+        // Each name worked out once, rather than twice per comparison.
+        case .name: items.map { (name: name($0), item: $0) }
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+            .map { $0.item }
         }
         return reversed ? sorted.reversed() : sorted
     }
