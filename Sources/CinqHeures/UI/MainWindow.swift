@@ -20,6 +20,9 @@ struct MainWindow: View {
                 // pages must now be pushed there. Left on Émissions or Recherche, taps on posters,
                 // "Tout voir" or the player went to a stack nobody could see.
                 .onAppear { model.phoneTab = .home }
+                // The app's orange, as on the iPhone (the sidebar's selection, the speed, the play
+                // buttons of an episode). The Mac keeps the accent colour picked in System Settings.
+                .tint(brandOrange)
         }
         #else
         splitLayout

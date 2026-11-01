@@ -129,7 +129,17 @@ final class AppModel {
     private var filmLookup: Task<Void, Never>?
     private var lastFeedRefresh = Date.distantPast
     private var index = SearchIndex(Catalogue())
-    private(set) var discovery = Discovery(Catalogue())
+    private(set) var discovery = Discovery(Catalogue()) {
+        didSet { listings = [:] }
+    }
+    /// Each listing's titles in each order, worked out once per catalogue (the sidebar's along with
+    /// the index). A page that has its titles on its first frame builds its list in one go: filled a
+    /// moment later, the Mac's table took 0.3 s to take in the 2,422 films without a score.
+    @ObservationIgnored private var listings: [ListingKey: [ShelfItem]] = [:]
+    private struct ListingKey: Hashable {
+        let listing: Listing
+        let order: ListingOrder
+    }
     /// Picks the random shelves; a new one reshuffles the home page.
     private(set) var shuffleSeed = UInt64.random(in: 0..<UInt64.max)
     private(set) var homeSections: [HomeSection] = []
@@ -214,8 +224,19 @@ final class AppModel {
         if case .show(let series) = sidebar { series } else { nil }
     }
 
-    /// How many passages were given each score.
+    /// How many films each score's page lists: one per title, like the page.
     func count(ofStars stars: Int) -> Int { starCounts[stars, default: 0] }
+
+    /// A listing's titles, in this order (newest first, or A to Z).
+    func items(in listing: Listing, by order: ListingOrder) -> [ShelfItem] {
+        let key = ListingKey(listing: listing, order: order)
+        // Read before the cache, so a page showing the result follows a new catalogue.
+        let discovery = discovery
+        if let known = listings[key] { return known }
+        let items = order.sorted(listings[ListingKey(listing: listing, order: .date)] ?? discovery.items(listing))
+        listings[key] = items
+        return items
+    }
 
     /// Films reviewed without a score (their count is kept with the scores', under this key).
     private static let unratedKey = -1
@@ -347,21 +368,26 @@ final class AppModel {
         let snapshot = catalogue
         indexGeneration += 1
         let generation = indexGeneration
+        let unrated = Self.unratedKey
         Task {
-            let (fresh, browse) = await Task.detached(priority: .utility) { (SearchIndex(snapshot), Discovery(snapshot)) }.value
+            let (fresh, browse, scored) = await Task.detached(priority: .utility) {
+                let browse = Discovery(snapshot)
+                // The sidebar's lists, ready before they're opened. Their badges count these titles.
+                var scored: [Int: [ShelfItem]] = [:]
+                for stars in 0...4 { scored[stars] = ListingOrder.date.sorted(browse.items(.stars(stars))) }
+                scored[unrated] = ListingOrder.date.sorted(browse.items(.unrated))
+                return (SearchIndex(snapshot), browse, scored)
+            }.value
             guard generation == indexGeneration else { return }   // a newer catalogue is being indexed
             index = fresh
             discovery = browse
-            var episodes: [Series: Int] = [:]
-            var stars: [Int: Int] = [:]
-            for episode in snapshot.episodes {
-                episodes[episode.series, default: 0] += 1
-                for segment in episode.segments where segment.kind == .movie {
-                    stars[segment.stars ?? Self.unratedKey, default: 0] += 1
-                }
+            for (stars, items) in scored {
+                listings[ListingKey(listing: stars == unrated ? .unrated : .stars(stars), order: .date)] = items
             }
+            var episodes: [Series: Int] = [:]
+            for episode in snapshot.episodes { episodes[episode.series, default: 0] += 1 }
             episodeCounts = episodes
-            starCounts = stars
+            starCounts = scored.mapValues(\.count)
             rebuildHome()
             searchChanged()
         }

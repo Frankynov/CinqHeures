@@ -45,8 +45,6 @@ struct FirstLaunchView: View {
 struct ListingPage: View {
     let listing: Listing
     let model: AppModel
-    @ViewState private var items: [ShelfItem] = []
-    @ViewState private var loaded = false
     @AppStorage("listingOrder") private var order = ListingOrder.date
     @AppStorage("listingReversed") private var reversed = false
     @AppStorage("listingLayout") private var layout = ListingLayout.grid
@@ -55,11 +53,18 @@ struct ListingPage: View {
     /// changes at every step of a window resize, and each change redrew and re-sorted the page.
     @ViewState private var isWide: Bool? = nil
     @Environment(\.horizontalSizeClass) private var sizeClass
+    /// On iPhone, where pages slide in, the rows join a few frames into the slide: built in its first
+    /// frame, they made that frame twice as long. Elsewhere they're in from the first frame: added to a
+    /// list already showing, 2,422 films without a score took the Mac 0.3 s and the iPad 0.2 s.
+    @ViewState private var slideStarted = false
+    private var rowsIn: Bool { sizeClass != .compact || slideStarted }
 
     var body: some View {
-        let shown = order.sorted(items, reversed: reversed)
+        // Sorted once and kept by the model: redrawing the page (a resize, the other layout) sorts nothing.
+        let sorted = model.items(in: listing, by: order)
+        let shown = !rowsIn ? [] : reversed ? Array(sorted.reversed()) : sorted
         Group {
-            if loaded && items.isEmpty {
+            if sorted.isEmpty {
                 ContentUnavailableView("Rien ici", systemImage: "film")
             } else if sizeClass == .compact || layout == .list {
                 // Two posters a row fill an iPhone screen with four titles; rows show a dozen. On the
@@ -88,9 +93,14 @@ struct ListingPage: View {
         .environment(\.wideRows, isWide)
         .pageEdges()
         .navigationTitle(listing.title)
-        // Never empty: a subtitle that appears once the titles have loaded made iOS drop the large
-        // title into the bar a moment after the page opened.
-        .navigationSubtitle(loaded ? "\(items.count) titre\(items.count > 1 ? "s" : "")" : "Chargement…")
+        // There from the first frame: a subtitle that arrived once the titles had loaded made iOS
+        // drop the large title into the bar a moment after the page opened.
+        .navigationSubtitle("\(sorted.count) titre\(sorted.count > 1 ? "s" : "")")
+        .task {
+            guard sizeClass == .compact else { return }
+            try? await Task.sleep(for: .milliseconds(50))
+            slideStarted = true
+        }
         .toolbar {
             if sizeClass != .compact {
                 ToolbarItem {
@@ -140,13 +150,6 @@ struct ListingPage: View {
                 .help("Trier par date ou par nom ; choisir à nouveau inverse l'ordre")
             }
         }
-        .task(id: listing) {
-            loaded = false
-            let discovery = model.discovery
-            let wanted = listing
-            items = await Task.detached(priority: .userInitiated) { discovery.items(wanted) }.value
-            loaded = true
-        }
     }
 }
 
@@ -172,15 +175,15 @@ enum ListingOrder: String, CaseIterable {
         }
     }
 
-    func sorted(_ items: [ShelfItem], reversed: Bool) -> [ShelfItem] {
-        let sorted = switch self {
+    /// Newest first, or A to Z (reversing is the page's business).
+    func sorted(_ items: [ShelfItem]) -> [ShelfItem] {
+        switch self {
         case .date: items.sorted { date($0) > date($1) }
         // Each name worked out once, rather than twice per comparison.
         case .name: items.map { (name: name($0), item: $0) }
             .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
             .map { $0.item }
         }
-        return reversed ? sorted.reversed() : sorted
     }
 
     private func date(_ item: ShelfItem) -> Date {
