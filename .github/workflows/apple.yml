@@ -1,0 +1,77 @@
+# Builds the Mac app and the iPhone/iPad app on GitHub's macOS runners and runs the core tests, on
+# every push. Run it by hand (Actions › Apple builds › Run workflow) to also launch both apps and
+# record their CPU and memory, with screenshots, kept as the run's artifacts (see Tools/ci/).
+name: Apple builds
+
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      measure:
+        description: Also launch the apps and record CPU, memory and screenshots
+        type: boolean
+        default: true
+
+concurrency:
+  group: apple-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  mac:
+    name: Mac app and core tests
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tools
+        run: |
+          ls -d /Applications/Xcode*.app
+          xcode-select -p
+          xcodebuild -version
+          swift --version
+          sw_vers
+      - name: Build the Mac app
+        run: ./build.sh
+      - name: Launch it, record CPU and memory
+        if: github.event_name == 'workflow_dispatch' && inputs.measure
+        run: Tools/ci/measure-mac.sh
+      - name: Core tests
+        run: ./test.sh
+      - name: Keep the measurements
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.measure
+        uses: actions/upload-artifact@v4
+        with:
+          name: health-mac
+          path: health/mac
+          if-no-files-found: ignore
+
+  ios:
+    name: iPhone and iPad app
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tools
+        run: |
+          xcodebuild -version
+          xcrun simctl list runtimes
+          xcodebuild -list -project iOS/CinqHeures.xcodeproj
+      - name: Build for the simulator
+        run: |
+          xcodebuild -project iOS/CinqHeures.xcodeproj -scheme 5heures -configuration Release \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath build/ios \
+            CODE_SIGNING_ALLOWED=NO -quiet build
+      - name: Launch it on an iPhone and an iPad, record CPU and memory
+        if: github.event_name == 'workflow_dispatch' && inputs.measure
+        run: Tools/ci/measure-ios.sh build/ios/Build/Products/Release-iphonesimulator/5heures.app
+      - name: Keep the measurements
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.measure
+        uses: actions/upload-artifact@v4
+        with:
+          name: health-ios
+          path: health/ios
+          if-no-files-found: ignore

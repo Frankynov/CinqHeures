@@ -332,6 +332,28 @@ private func fixtureEpisodes() throws -> [Episode] {
         #expect(work.mentions.count == 1)
         #expect(index.work(kind: .tvShow, title: "The Substance (2024)") == nil)
     }
+
+    /// The home page is rebuilt on the main thread (at launch, after each catalogue or film-details
+    /// update, on "Surprenez-moi"), and a listing page sorts its titles on the main thread: on the real
+    /// catalogue (skipped when the app has never run here) both must stay well under a few frames.
+    @Test func browsingTheRealCatalogueIsFast() throws {
+        guard let catalogue = Catalogue.load(from: Catalogue.defaultLocation), catalogue.episodes.count > 1000 else { return }
+        let discovery = Discovery(catalogue)
+        let clock = ContinuousClock()
+        let home = clock.measure {
+            _ = discovery.shelves(seed: 1)
+            _ = discovery.decadeTiles(seed: 1)
+            _ = discovery.hero(seed: 1)
+        }
+        let biggest = Decade.all.map { discovery.items(.decade($0)) }.max { $0.count < $1.count } ?? []
+        func name(_ item: ShelfItem) -> String {
+            if case .passage(let mention) = item { mention.segment.displayTitle } else { "" }
+        }
+        let byName = clock.measure {
+            _ = biggest.sorted { name($0).localizedStandardCompare(name($1)) == .orderedAscending }
+        }
+        print("home rebuilt in \(home); \(biggest.count) films of one decade sorted by name in \(byName)")
+    }
 }
 
 @Suite struct RobustDecodingTests {
