@@ -47,6 +47,8 @@ final class PlayerModel {
     static let jump: Double = 15
 
     private let player = AVPlayer()
+    /// For the AirPlay button, which on the Mac lists the routes of one player.
+    var routedPlayer: AVPlayer { player }
     private let loader = RangeLoader()
     private var loadTask: Task<Void, Never>?
     private var timeObserver: Any?

@@ -148,6 +148,7 @@ struct PlayerBar: View {
                         .help("Volume")
                 }
             }
+            AirPlayButton(player: player, size: 24)
             Menu {
                 ForEach(PlayerModel.speeds, id: \.self) { speed in
                     Button {
@@ -287,21 +288,56 @@ private struct MarqueeText: View {
 /// Hovering shows the time and the passage under the pointer; clicking or dragging seeks there.
 private struct ChapterScrubber: View {
     let player: PlayerModel
+    /// The full-screen player's layout: the times and the film being discussed under the bar.
+    var timesBelow = false
     @ViewState private var hoverX: CGFloat?
     @ViewState private var dragTime: Double?
+    /// Where a touch drag began: the bar moves from the playhead, it doesn't jump to the finger.
+    @ViewState private var dragStart: (time: Double, x: CGFloat)?
+
+    /// A finger, not a pointer: a thicker bar and a taller hold, no thumb, relative drags.
+    private var touch: Bool {
+        #if os(iOS)
+        true
+        #else
+        false
+        #endif
+    }
+    private var trackHeight: CGFloat { touch ? 30 : 18 }
 
     var body: some View {
-        HStack(spacing: 8) {
-            Text(clock(dragTime ?? player.currentTime))
-                .frame(minWidth: 44, alignment: .trailing)
-            GeometryReader { geo in track(width: geo.size.width) }
-                .frame(height: 18)
-            Text("-" + clock(max(0, player.duration - (dragTime ?? player.currentTime))))
-                .frame(minWidth: 50, alignment: .leading)
+        let time = dragTime ?? player.currentTime
+        if timesBelow {
+            VStack(spacing: 4) {
+                GeometryReader { geo in track(width: geo.size.width) }
+                    .frame(height: trackHeight)
+                HStack(spacing: 8) {
+                    Text(clock(time))
+                    Spacer(minLength: 4)
+                    if let chapter = chapter(at: time) {
+                        Text(chapter.displayTitle).lineLimit(1)
+                    }
+                    Spacer(minLength: 4)
+                    Text("-" + clock(max(0, player.duration - time)))
+                }
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+            }
+        } else {
+            HStack(spacing: 8) {
+                Text(clock(time))
+                    .frame(minWidth: 44, alignment: .trailing)
+                GeometryReader { geo in track(width: geo.size.width) }
+                    .frame(height: trackHeight)
+                Text("-" + clock(max(0, player.duration - time)))
+                    .frame(minWidth: 50, alignment: .leading)
+            }
+            .font(.caption.monospacedDigit())
+            .foregroundStyle(.secondary)
         }
-        .font(.caption.monospacedDigit())
-        .foregroundStyle(.secondary)
     }
+
+    private func chapter(at time: Double) -> Segment? { chapters.last { ($0.start ?? 0) <= time } }
 
     private var ready: Bool { player.phase == .ready && player.duration > 0 }
 
@@ -315,25 +351,29 @@ private struct ChapterScrubber: View {
         let time = dragTime ?? player.currentTime
         let x = { (t: Double) in CGFloat(min(max(t / duration, 0), 1)) * width }
         let active = hoverX != nil || dragTime != nil
+        let bar: CGFloat = touch ? (active ? 12 : 7) : (active ? 6 : 4)
+        let mark: CGFloat = touch ? (active ? 20 : 13) : (active ? 14 : 10)
         return ZStack(alignment: .leading) {
-            Capsule().fill(.primary.opacity(0.14)).frame(height: active ? 6 : 4)
-            Capsule().fill(brandOrange).frame(width: ready ? x(time) : 0, height: active ? 6 : 4)
+            Capsule().fill(.primary.opacity(0.14)).frame(height: bar)
+            Capsule().fill(brandOrange).frame(width: ready ? x(time) : 0, height: bar)
             if ready {
                 ForEach(chapters) { chapter in
                     Capsule()
                         .fill(.primary.opacity(0.5))
-                        .frame(width: 2, height: active ? 14 : 10)
+                        .frame(width: 2, height: mark)
                         .offset(x: x(chapter.start ?? 0) - 1)
                 }
-                Circle()
-                    .fill(.white)
-                    .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
-                    .frame(width: 12, height: 12)
-                    .offset(x: x(time) - 6)
-                    .opacity(active ? 1 : 0)
+                if !touch {
+                    Circle()
+                        .fill(.white)
+                        .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
+                        .frame(width: 12, height: 12)
+                        .offset(x: x(time) - 6)
+                        .opacity(active ? 1 : 0)
+                }
             }
         }
-        .frame(width: width, height: 18)
+        .frame(width: width, height: trackHeight)
         .animation(.easeOut(duration: 0.12), value: active)
         .contentShape(Rectangle())
         .onContinuousHover { phase in
@@ -343,15 +383,26 @@ private struct ChapterScrubber: View {
             }
         }
         .gesture(
-            DragGesture(minimumDistance: 0)
+            // A pointer clicks to a place; a finger grabs the playhead and slides it, so a tap or a
+            // thumb resting on the bar doesn't jump the audio.
+            DragGesture(minimumDistance: touch ? 2 : 0)
                 .onChanged { value in
                     guard ready else { return }
-                    dragTime = Double(min(max(value.location.x / width, 0), 1)) * duration
-                    hoverX = value.location.x
+                    let t: Double
+                    if touch {
+                        let start = dragStart ?? (time: player.currentTime, x: value.startLocation.x)
+                        dragStart = start
+                        t = min(max(start.time + Double((value.location.x - start.x) / width) * duration, 0), duration)
+                    } else {
+                        t = Double(min(max(value.location.x / width, 0), 1)) * duration
+                    }
+                    dragTime = t
+                    hoverX = touch ? x(t) : value.location.x
                 }
                 .onEnded { _ in
                     if let dragTime { player.seek(to: dragTime) }
                     dragTime = nil
+                    dragStart = nil
                     #if os(iOS)
                     // On a touch screen nothing "un-hovers": the bubble goes when the finger lifts.
                     hoverX = nil
@@ -361,9 +412,11 @@ private struct ChapterScrubber: View {
         .overlay(alignment: .topLeading) {
             if let hoverX, ready {
                 // Centred on the pointer in a wide box, lifted above the track.
+                // Kept on screen near the ends on touch, where the bar runs edge to edge.
+                let anchor = touch ? min(max(hoverX, 90), max(width - 90, 90)) : min(max(hoverX, 0), width)
                 bubble(at: Double(min(max(hoverX / width, 0), 1)) * duration)
                     .frame(width: 320)
-                    .offset(x: min(max(hoverX, 0), width) - 160, y: -30)
+                    .offset(x: anchor - 160, y: touch ? -36 : -30)
                     .allowsHitTesting(false)
             }
         }
@@ -371,7 +424,7 @@ private struct ChapterScrubber: View {
 
     /// "Contagion · 16:36" above the pointer: the passage being discussed at that time.
     private func bubble(at time: Double) -> some View {
-        let chapter = chapters.last { ($0.start ?? 0) <= time }
+        let chapter = chapter(at: time)
         return HStack(spacing: 6) {
             if let chapter {
                 Text(chapter.displayTitle).fontWeight(.semibold).lineLimit(1)
@@ -491,8 +544,9 @@ struct FullPlayer: View {
     var body: some View {
         let episode = player.episode
         let segment = player.currentSegment ?? player.requestedSegment
-        VStack(spacing: 22) {
-            Spacer(minLength: 8)
+        // The artwork centred in the upper part; what you touch sits low, under the thumb.
+        VStack(spacing: 0) {
+            Spacer(minLength: 16)
             Group {
                 if let url = segment?.posterURL {
                     PosterImage(url: url, pixels: 700, corner: 16).frame(maxHeight: 360)
@@ -501,72 +555,77 @@ struct FullPlayer: View {
                 }
             }
             .shadow(color: .black.opacity(0.3), radius: 18, y: 10)
+            Spacer(minLength: 16)
 
-            VStack(spacing: 6) {
-                Text(segment?.displayTitle ?? episode?.title ?? "")
-                    .font(.title2.weight(.bold))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                if let episode {
-                    HStack(spacing: 6) {
-                        SeriesBadge(series: episode.series)
-                        Text(EpisodeDates.long.string(from: episode.date)).foregroundStyle(.secondary)
+            VStack(spacing: 26) {
+                VStack(spacing: 6) {
+                    Text(segment?.displayTitle ?? episode?.title ?? "")
+                        .font(.title2.weight(.bold))
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                    if let episode {
+                        HStack(spacing: 6) {
+                            SeriesBadge(series: episode.series)
+                            Text(EpisodeDates.long.string(from: episode.date)).foregroundStyle(.secondary)
+                        }
+                        .font(.callout)
                     }
-                    .font(.callout)
+                    if player.serverIsSlow { SlowServerNote(player: player).padding(.top, 4) }
                 }
-                if player.serverIsSlow { SlowServerNote(player: player).padding(.top, 4) }
-            }
-            .padding(.horizontal, 24)
-
-            ChapterScrubber(player: player)
                 .padding(.horizontal, 24)
 
-            HStack(spacing: 44) {
-                Button { player.skip(by: -PlayerModel.jump) } label: {
-                    Image(systemName: "gobackward.15").font(.system(size: 30, weight: .medium))
-                }
-                Button { player.togglePlayPause() } label: {
-                    Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundStyle(.white)
-                        .contentTransition(.symbolEffect(.replace))
-                        .frame(width: 78, height: 78)
-                        .background(
-                            LinearGradient(colors: [Color(red: 0.98, green: 0.62, blue: 0.12), brandOrange],
-                                           startPoint: .top, endPoint: .bottom),
-                            in: Circle()
-                        )
-                        .shadow(color: brandOrange.opacity(0.4), radius: 8, y: 4)
-                }
-                Button { player.skip(by: PlayerModel.jump) } label: {
-                    Image(systemName: "goforward.15").font(.system(size: 30, weight: .medium))
-                }
-            }
-            .buttonStyle(.plain)
-            .disabled(player.phase != .ready)
+                ChapterScrubber(player: player, timesBelow: true)
+                    .padding(.horizontal, 24)
 
-            HStack {
-                Menu {
-                    ForEach(PlayerModel.speeds, id: \.self) { speed in
-                        Button { player.rate = speed } label: {
-                            Text((speed == speed.rounded() ? String(format: "%.0f", speed) : String(format: "%g", speed)) + "×")
-                            if speed == player.rate { Image(systemName: "checkmark") }
-                        }
+                HStack(spacing: 44) {
+                    Button { player.skip(by: -PlayerModel.jump) } label: {
+                        Image(systemName: "gobackward.15").font(.system(size: 30, weight: .medium))
                     }
-                } label: {
-                    Label("Vitesse " + (player.rate == player.rate.rounded() ? String(format: "%.0f", player.rate) : String(format: "%g", player.rate)) + "×",
-                          systemImage: "gauge.with.dots.needle.67percent")
+                    Button { player.togglePlayPause() } label: {
+                        Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundStyle(.white)
+                            .contentTransition(.symbolEffect(.replace))
+                            .frame(width: 78, height: 78)
+                            .background(
+                                LinearGradient(colors: [Color(red: 0.98, green: 0.62, blue: 0.12), brandOrange],
+                                               startPoint: .top, endPoint: .bottom),
+                                in: Circle()
+                            )
+                            .shadow(color: brandOrange.opacity(0.4), radius: 8, y: 4)
+                    }
+                    Button { player.skip(by: PlayerModel.jump) } label: {
+                        Image(systemName: "goforward.15").font(.system(size: 30, weight: .medium))
+                    }
                 }
-                Spacer()
-                Button(action: openEpisode) {
-                    Label("Ouvrir l'épisode", systemImage: "list.bullet")
+                .buttonStyle(.plain)
+                .disabled(player.phase != .ready)
+
+                HStack {
+                    Menu {
+                        ForEach(PlayerModel.speeds, id: \.self) { speed in
+                            Button { player.rate = speed } label: {
+                                Text((speed == speed.rounded() ? String(format: "%.0f", speed) : String(format: "%g", speed)) + "×")
+                                if speed == player.rate { Image(systemName: "checkmark") }
+                            }
+                        }
+                    } label: {
+                        Label("Vitesse " + (player.rate == player.rate.rounded() ? String(format: "%.0f", player.rate) : String(format: "%g", player.rate)) + "×",
+                              systemImage: "gauge.with.dots.needle.67percent")
+                    }
+                    Spacer()
+                    Button(action: openEpisode) {
+                        Label("Ouvrir l'épisode", systemImage: "list.bullet")
+                    }
                 }
+                .font(.callout.weight(.medium))
+                // In the middle of the row, whatever the widths of the labels on either side.
+                .overlay { AirPlayButton(player: player, size: 34, tint: brandOrange) }
+                .padding(.horizontal, 28)
             }
-            .font(.callout.weight(.medium))
-            .padding(.horizontal, 28)
-            Spacer(minLength: 8)
         }
-        .padding(.vertical, 12)
+        .padding(.top, 12)
+        .padding(.bottom, 20)
     }
 }
 #endif

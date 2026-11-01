@@ -1,3 +1,4 @@
+import AVKit
 import SwiftUI
 #if os(macOS)
 import AppKit
@@ -86,3 +87,52 @@ private struct PagePadding: ViewModifier {
     }
 }
 
+
+/// The system's AirPlay button: speakers, Apple TV, AirPods… On the Mac it lists the routes of the
+/// app's own player; on iPhone and iPad it routes the app's audio.
+struct AirPlayButton: View {
+    let player: PlayerModel
+    var size: CGFloat = 28
+    /// The icon's colour when nothing is routed (orange once it plays elsewhere).
+    var tint: Color = .primary
+
+    var body: some View {
+        RoutePicker(player: player.routedPlayer, tint: tint)
+            .frame(width: size, height: size)
+            .help("AirPlay")
+            .accessibilityLabel("AirPlay")
+    }
+}
+
+#if os(macOS)
+private struct RoutePicker: NSViewRepresentable {
+    let player: AVPlayer
+    let tint: Color
+
+    func makeNSView(context: Context) -> AVRoutePickerView {
+        let view = AVRoutePickerView()
+        view.isRoutePickerButtonBordered = false
+        view.setRoutePickerButtonColor(NSColor(tint), for: .normal)
+        view.setRoutePickerButtonColor(NSColor(brandOrange), for: .active)
+        view.player = player
+        return view
+    }
+
+    func updateNSView(_ view: AVRoutePickerView, context: Context) { view.player = player }
+}
+#else
+private struct RoutePicker: UIViewRepresentable {
+    let player: AVPlayer
+    let tint: Color
+
+    func makeUIView(context: Context) -> AVRoutePickerView {
+        let view = AVRoutePickerView()
+        view.tintColor = UIColor(tint)
+        view.activeTintColor = UIColor(brandOrange)
+        view.prioritizesVideoDevices = false
+        return view
+    }
+
+    func updateUIView(_ view: AVRoutePickerView, context: Context) {}
+}
+#endif
