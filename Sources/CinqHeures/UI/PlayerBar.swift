@@ -16,8 +16,9 @@ struct PlayerBar: View {
     static let reservedHeight: CGFloat = 132
     #endif
 
-    /// The bar's own width, to pick its one-row or two-row form.
-    @ViewState private var width: CGFloat = 1000
+    /// Whether the bar is narrower than its one-row form needs (about 760 points). A yes or no rather
+    /// than the width itself, so resizing the window doesn't redraw the bar at every step.
+    @ViewState private var isNarrow = false
 
     var body: some View {
         Group {
@@ -27,15 +28,15 @@ struct PlayerBar: View {
         .padding(.vertical, 9)
         .modifier(GlassPanel(cornerRadius: 22))
         .frame(maxWidth: 1240)
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+        .onGeometryChange(for: Bool.self) { $0.size.width < 760 } action: { isNarrow = $0 }
     }
 
-    /// Two rows on an iPhone or an iPad in portrait: the one-row bar needs about 760 points.
+    /// Two rows on an iPhone or an iPad in portrait.
     private var isCompact: Bool {
         #if os(macOS)
         false
         #else
-        width < 760
+        isNarrow
         #endif
     }
 
@@ -199,7 +200,7 @@ struct PlayerBar: View {
                         Text("Lecture impossible")
                             .font(.callout.weight(.semibold)).foregroundStyle(.red).lineLimit(1)
                     default:
-                        MarqueeText(text: segment?.displayTitle ?? episode.title)
+                        MarqueeText(text: segment?.displayTitle ?? episode.title, scrolls: player.isPlaying)
                     }
                     if case .failed(let message) = player.phase {
                         Button { player.retry() } label: {
@@ -210,13 +211,9 @@ struct PlayerBar: View {
                     } else if player.serverIsSlow {
                         // While the file opens as well as during playback: the wait is the server's.
                         SlowServerNote(player: player)
-                    } else if player.phase != .loading {
-                        HStack(spacing: 5) {
-                            SeriesBadge(series: episode.series)
-                            Text(EpisodeDates.short.string(from: episode.date))
-                                .font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                                .fixedSize()
-                        }
+                    } else {
+                        // Also while the file opens: the title then doesn't jump up a line once it plays.
+                        InfoLine(episode: episode, segment: segment)
                     }
                 }
             }
@@ -229,11 +226,51 @@ struct PlayerBar: View {
     }
 }
 
+/// Under the bar's title: the show and the date and, on iPhone and iPad, the score of the film being
+/// discussed, when there's room for it.
+private struct InfoLine: View {
+    let episode: Episode
+    let segment: Segment?
+
+    var body: some View {
+        #if os(iOS)
+        if let stars = segment?.stars {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 6) {
+                    showAndDate
+                    Text(Segment.starString(stars))
+                        .font(.caption)
+                        .foregroundStyle(brandOrange)
+                        .fixedSize()
+                        .accessibilityLabel("\(stars) étoile\(stars > 1 ? "s" : "") sur 4")
+                }
+                showAndDate
+            }
+        } else {
+            showAndDate
+        }
+        #else
+        showAndDate
+        #endif
+    }
+
+    private var showAndDate: some View {
+        HStack(spacing: 5) {
+            SeriesBadge(series: episode.series)
+            Text(EpisodeDates.short.string(from: episode.date))
+                .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                .fixedSize()
+        }
+    }
+}
+
 /// A one-line title that scrolls when it doesn't fit: a pause, a slow glide to its end, back again.
+/// Only while `scrolls` (the bar passes "playing"): a paused player stays still and costs nothing.
 /// With "Reduce motion" on it stays put, and the whole title shows on hover.
 private struct MarqueeText: View {
     let text: String
     var font: Font = .callout.weight(.semibold)
+    var scrolls = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ViewState private var textWidth: CGFloat = 0
     @ViewState private var boxWidth: CGFloat = 0
@@ -267,7 +304,12 @@ private struct MarqueeText: View {
                 }
             }
             .help(overflow > 1 ? text : "")
-            .task(id: "\(text)|\(Int(overflow))|\(reduceMotion)") {
+            .task(id: "\(text)|\(Int(overflow))|\(reduceMotion)|\(scrolls)") {
+                guard scrolls else {
+                    // Paused: glide back to the start of the title and stay there.
+                    withAnimation(.easeInOut(duration: 0.5)) { offset = 0 }
+                    return
+                }
                 offset = 0
                 guard overflow > 1, !reduceMotion else { return }
                 let glide = Double(overflow) / 28          // about 28 points a second
@@ -559,10 +601,19 @@ struct FullPlayer: View {
 
             VStack(spacing: 26) {
                 VStack(spacing: 6) {
-                    Text(segment?.displayTitle ?? episode?.title ?? "")
-                        .font(.title2.weight(.bold))
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
+                    // Always two lines' room, the title sitting on the lower one: as playback moves from
+                    // film to film, the lines under it don't jump.
+                    ZStack(alignment: .bottom) {
+                        Text(verbatim: "X\nX").hidden()
+                        Text(segment?.displayTitle ?? episode?.title ?? "")
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                    }
+                    .font(.title2.weight(.bold))
+                    // In an episode with scores, the line stays (invisible) between films, for the same reason.
+                    if let episode, episode.segments.contains(where: { $0.stars != nil }) {
+                        ScoreLine(segment: segment)
+                    }
                     if let episode {
                         HStack(spacing: 6) {
                             SeriesBadge(series: episode.series)
@@ -638,6 +689,44 @@ struct FullPlayer: View {
 
     private func speedText(_ speed: Float) -> String {
         (speed == speed.rounded() ? String(format: "%.0f", speed) : String(format: "%g", speed)) + "×"
+    }
+}
+
+/// "★★★☆ 3 bonnes doses": the score given to the film being discussed, under the full player's title.
+/// Without one (between films, or a film reviewed without a score) it keeps its place, invisible.
+private struct ScoreLine: View {
+    let segment: Segment?
+
+    var body: some View {
+        let stars: Int? = segment?.stars
+        let verdict: String? = stars == nil ? nil : words
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(Segment.starString(stars ?? 0))
+                .font(.title3)
+                .foregroundStyle(brandOrange)
+            if let verdict {
+                Text(verdict)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .lineLimit(1)
+        .opacity(stars == nil ? 0 : 1)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(spoken(stars: stars ?? 0, verdict: verdict))
+        .accessibilityHidden(stars == nil)
+    }
+
+    /// The hosts' own words, when they say more than the number ("3 porte-avions", not just "3").
+    private var words: String? {
+        guard let verdict = segment?.spokenVerdict, verdict.contains(where: { $0.isLetter }) else { return nil }
+        return verdict
+    }
+
+    private func spoken(stars: Int, verdict: String?) -> String {
+        let score = "\(stars) étoile\(stars > 1 ? "s" : "") sur 4"
+        guard let verdict else { return score }
+        return score + ", " + verdict
     }
 }
 #endif
