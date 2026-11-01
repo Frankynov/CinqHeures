@@ -108,6 +108,24 @@ private func fixtureEpisodes() throws -> [Episode] {
         #expect(catalogue.episodes.count == count)
     }
 
+    /// The home page draws its shelves from the catalogue in order: episodes recorded the same day must
+    /// keep one order whatever order they come in, or a refresh with nothing new reshuffles it.
+    @Test func sameDayEpisodesAlwaysComeInTheSameOrder() throws {
+        let day = Date(timeIntervalSince1970: 1_700_000_000)
+        let episodes = (1...6).map { id in
+            Episode(id: id, series: .podcast, date: id == 6 ? day.addingTimeInterval(86_400) : day, summary: "",
+                    audioURL: URL(string: "https://example.com/\(id).mp3")!, segments: [])
+        }
+        let expected = [6, 5, 4, 3, 2, 1]
+        #expect(Catalogue(episodes: episodes).episodes.map(\.id) == expected)
+        #expect(Catalogue(episodes: episodes.reversed()).episodes.map(\.id) == expected)
+        var merged = Catalogue(episodes: Array(episodes.prefix(3)))
+        merged.merge(episodes.shuffled())
+        #expect(merged.episodes.map(\.id) == expected)
+        merged.replaceEpisodes(of: .podcast, with: episodes.shuffled())
+        #expect(merged.episodes.map(\.id) == expected)
+    }
+
     @Test func savesAndLoadsBack() throws {
         let catalogue = Catalogue(episodes: try fixtureEpisodes(), updatedAt: Date(timeIntervalSince1970: 1_700_000_000))
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("catalogue-\(UUID()).json")
@@ -269,6 +287,31 @@ private func fixtureEpisodes() throws -> [Episode] {
         #expect(segment("Black Mirror").year == nil)
         #expect(segment("Black Mirror").displayTitle == "Black Mirror")
         #expect(segment("(500) jours ensemble (2009)").year == 2009)
+        #expect(segment("(500) jours ensemble (2009)").displayTitle == "(500) jours ensemble")
+        #expect(segment("Blade Runner 2049").year == nil)
+        #expect(segment("Oblivion (2013) ").displayTitle == "Oblivion")
+        #expect(segment("Film (20133)").year == nil)
+    }
+
+    /// The year is read by hand for speed: it must say exactly what the regular expressions it
+    /// replaced said, on every title of the fixture and on the odd ones.
+    @Test func theYearReaderAgreesWithTheRegularExpressions() throws {
+        func regexYear(_ title: String) -> Int? {
+            guard let range = title.range(of: #"\((\d{4})\)\s*$"#, options: .regularExpression) else { return nil }
+            return Int(title[range].filter(\.isNumber))
+        }
+        func regexDisplayTitle(_ title: String) -> String {
+            regexYear(title) == nil ? title
+                : title.replacingOccurrences(of: #"\s*\(\d{4}\)\s*$"#, with: "", options: .regularExpression)
+        }
+        let odd = ["Oblivion (2013)", "Oblivion(2013)", "Oblivion  (2013)  ", "Oblivion (2013)\n", "(2013)", "Film (13)",
+                   "Film (20133)", "Film 2013)", "Film (2013", "Film (2013) suite", "Amélie (2001)", "Été 85 (2020)",
+                   "Film\u{00A0}(2013)", "Film (٢٠١٣)", "", " ", "()", "Film (2O13)", "M (1931)", "Film (1999) (2000)"]
+        let titles = odd + catalogue.episodes.flatMap(\.segments).map(\.title)
+        for title in titles {
+            #expect(segment(title).year == regexYear(title), "year of \(title.debugDescription)")
+            #expect(segment(title).displayTitle == regexDisplayTitle(title), "display title of \(title.debugDescription)")
+        }
     }
 
     @Test func decadesGroupFilmsByTheirReleaseYear() {

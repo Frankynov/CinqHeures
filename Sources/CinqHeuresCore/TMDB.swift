@@ -131,8 +131,7 @@ public struct TMDBClient: Sendable {
 
     /// Candidates released close to the episode, best first: same title, then release nearest the episode.
     static func rank(_ results: [SearchPage.Result], query: String, around date: Date) -> [SearchPage.Result] {
-        let wanted = Search.fold(query)
-        return results
+        results
             .compactMap { result -> (SearchPage.Result, Double)? in
                 guard let released = releaseDate(result.release_date) else { return nil }
                 let days = date.timeIntervalSince(released) / 86_400

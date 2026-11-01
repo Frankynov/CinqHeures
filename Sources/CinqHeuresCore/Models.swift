@@ -119,14 +119,38 @@ public struct Segment: Codable, Hashable, Identifiable, Sendable {
     }
 
     /// The release year at the end of a film's title: "Oblivion (2013)" is 2013.
-    public var year: Int? {
-        guard let range = title.range(of: #"\((\d{4})\)\s*$"#, options: .regularExpression) else { return nil }
-        return Int(title[range].filter(\.isNumber))
-    }
+    public var year: Int? { Self.trailingYear(in: title)?.year }
 
     /// The title without that year.
     public var displayTitle: String {
-        year == nil ? title : title.replacingOccurrences(of: #"\s*\(\d{4}\)\s*$"#, with: "", options: .regularExpression)
+        guard let found = Self.trailingYear(in: title) else { return title }
+        var end = found.start
+        while end > title.startIndex, title[title.index(before: end)].isWhitespace { end = title.index(before: end) }
+        return String(title[..<end])
+    }
+
+    /// "(dddd)" closing a title, spaces after it allowed: the year, and where its "(" is. Read by hand,
+    /// from the end, rather than with a regular expression: the shelves, the listings and their sorts
+    /// ask for it thousands of times, on the main thread.
+    static func trailingYear(in title: String) -> (year: Int, start: String.Index)? {
+        var index = title.endIndex
+        func previous() -> Character? {
+            guard index > title.startIndex else { return nil }
+            index = title.index(before: index)
+            return title[index]
+        }
+        var character = previous()
+        while let found = character, found.isWhitespace { character = previous() }
+        guard character == ")" else { return nil }
+        var year = 0
+        var scale = 1
+        for _ in 0..<4 {
+            guard let digit = previous(), digit.isASCII, let value = digit.wholeNumberValue else { return nil }
+            year += value * scale
+            scale *= 10
+        }
+        guard previous() == "(" else { return nil }
+        return (year, index)
     }
 
     /// The score as whole stars, 0 to 4.

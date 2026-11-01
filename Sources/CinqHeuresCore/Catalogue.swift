@@ -12,9 +12,16 @@ public struct Catalogue: Codable, Sendable {
     public private(set) var schema: Int
 
     public init(episodes: [Episode] = [], updatedAt: Date? = nil) {
-        self.episodes = episodes.sorted { $0.date > $1.date }
+        self.episodes = episodes.sorted(by: Self.newestFirst)
         self.updatedAt = updatedAt
         self.schema = Self.currentSchema
+    }
+
+    /// Newest first, and episodes recorded the same day always in the same order (by id). Without that,
+    /// each refresh listed same-day episodes in a new order, which was enough to change the home page's
+    /// shelves (drawn from the catalogue in order) a few seconds after launch, with nothing new.
+    static func newestFirst(_ a: Episode, _ b: Episode) -> Bool {
+        a.date != b.date ? a.date > b.date : a.id > b.id
     }
 
     private enum CodingKeys: String, CodingKey { case episodes, updatedAt, schema }
@@ -37,7 +44,7 @@ public struct Catalogue: Codable, Sendable {
     public mutating func merge(_ fresh: [Episode], at date: Date = Date()) {
         var byID = Dictionary(episodes.map { ($0.id, $0) }, uniquingKeysWith: { _, newer in newer })
         for episode in fresh { byID[episode.id] = episode }
-        episodes = byID.values.sorted { $0.date > $1.date }
+        episodes = byID.values.sorted(by: Self.newestFirst)
         updatedAt = date
     }
 
