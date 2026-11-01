@@ -97,10 +97,29 @@ struct AirPlayButton: View {
     var tint: Color = .primary
 
     var body: some View {
-        RoutePicker(player: player.routedPlayer, tint: tint)
+        picker
             .frame(width: size, height: size)
             .help("AirPlay")
             .accessibilityLabel("AirPlay")
+    }
+
+    @ViewBuilder private var picker: some View {
+        #if os(iOS)
+        // The system's picker only once the app holds the audio (it takes it when asked to play):
+        // before that, the picker kept handling its own route notifications in a loop, burning a
+        // third of a core and more on an idle iPad. Until then, the icon dimmed like the other
+        // controls of an empty player.
+        if player.audioSessionActive {
+            RoutePicker(player: player.routedPlayer, tint: tint)
+        } else {
+            Image(systemName: "airplayaudio")
+                .font(.system(size: size * 0.62, weight: .regular))
+                .foregroundStyle(tint)
+                .opacity(0.35)
+        }
+        #else
+        RoutePicker(player: player.routedPlayer, tint: tint)
+        #endif
     }
 }
 

@@ -38,6 +38,10 @@ final class PlayerModel {
     private(set) var progressRevision = 0
     /// The episode "Continuer l'écoute" was last redrawn for, and whether it was listed then.
     private var shelfState: (id: Int, listed: Bool)? = nil
+    /// iPhone and iPad: whether the app holds the audio (it takes it when asked to play). The AirPlay
+    /// button waits for it: before that, AVKit's route picker kept handling its own notifications in a
+    /// loop, a third of a core and more with nothing playing (the iPad simulator, where the bar shows it).
+    private(set) var audioSessionActive = false
     var rate: Float = 1 {
         didSet { if isPlaying { player.rate = rate }; UserDefaults.standard.set(rate, forKey: "rate") }
     }
@@ -87,6 +91,9 @@ final class PlayerModel {
 
     /// Plays `episode` from `segment` (or, with none, from where it was left, or the start).
     func play(_ episode: Episode, from segment: Segment? = nil) {
+        // As soon as play is pressed, not once the file has opened: the AirPlay button is live
+        // from then on (see `audioSessionActive`).
+        activateAudioSession()
         let start = segment.map { $0.start ?? 0 } ?? resumePoint(for: episode)
         requestedSegment = segment
         recoveries = 0
@@ -213,10 +220,11 @@ final class PlayerModel {
     }
 
     /// iPhone and iPad: the app takes over the audio (pausing another app's music or podcast) only
-    /// when it starts playing, not as soon as it's opened.
+    /// when it's asked to play, not as soon as it's opened.
     private func activateAudioSession() {
         #if os(iOS)
-        try? AVAudioSession.sharedInstance().setActive(true)
+        guard (try? AVAudioSession.sharedInstance().setActive(true)) != nil else { return }
+        if !audioSessionActive { audioSessionActive = true }
         #endif
     }
 
