@@ -36,7 +36,10 @@ The window is two panes: the sidebar and a navigation stack (pages push, the bac
 `CinqHeuresCore` package product). Only `iOS/App/` is iOS-specific (entry point, audio session for
 background playback, icon). Platform differences live in `Sources/CinqHeures/UI/Platform.swift` and a
 few `#if os(macOS)` blocks: the player becomes two rows on narrow screens and uses the device's
-volume buttons, the hero banner drops its poster when space runs out.
+volume buttons, the hero banner drops its poster when space runs out. On iPhone the full player shows
+the score of the film being discussed under its title (stars and the hosts' own words); on iPad the
+floating bar shows the stars after the show and date, when they fit. The audio session is activated
+when playback starts, not at launch, so opening the app doesn't stop another app's audio.
 
 ```
 cd iOS && xcodebuild -scheme 5heures -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17' build
@@ -52,6 +55,13 @@ macOS 15+, Swift 6, Command Line Tools only (no Xcode).
 ./build.sh debug
 ./test.sh             # core tests
 ```
+
+GitHub Actions (`.github/workflows/apple.yml`, macOS runners with Xcode) builds the Mac app, runs the
+core tests and builds the iPhone/iPad app for the simulator on every push. Run it by hand (Actions ›
+Apple builds › Run workflow) and it also launches the Mac app (a first launch, then a warm one) and
+the app on an iPhone and an iPad simulator, records CPU and memory every two seconds and takes
+screenshots: tables in the run's summary, files in its artifacts (`Tools/ci/`). Once the app has run
+there, the core tests also time searches, the home page rebuild and a sort by name on the real catalogue.
 
 First launch downloads the catalogue (~40 requests, ~4 MB saved in
 `~/Library/Application Support/CinqHeures/catalogue.json`); later launches refresh only the newest
