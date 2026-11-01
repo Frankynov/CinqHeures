@@ -127,6 +127,10 @@ final class AppModel {
     private var films = FilmLibrary.load()
     private let tmdb = TMDBClient()
     private var filmLookup: Task<Void, Never>?
+    /// Where each of Dayez's films starts, from the chapters in Franky's own MP3 files.
+    private var chapters = ChapterLibrary.load()
+    private let chapterReader = ChapterReader()
+    private var chapterLookup: Task<Void, Never>?
     private var lastFeedRefresh = Date.distantPast
     private var index = SearchIndex(Catalogue())
     private(set) var discovery = Discovery(Catalogue()) {
@@ -404,17 +408,19 @@ final class AppModel {
             await refresh(everything: false)
         }
         await refreshFeed()
-        applyFilmInfo()
+        applyDetails()
         lookUpFilms()
+        lookUpChapters()
     }
 
     // MARK: Film details from TMDB
 
-    /// Dayez's episodes with what TMDB knows about their films (title, poster, synopsis, director).
-    private func applyFilmInfo() {
+    /// Dayez's episodes with what TMDB knows about their films (title, poster, synopsis, director),
+    /// and where each film starts in the file.
+    private func applyDetails() {
         let dayez = catalogue.episodes.filter { $0.series == .dayez }
         guard !dayez.isEmpty else { return }
-        let enriched = dayez.map(films.enrich)
+        let enriched = dayez.map(details)
         guard enriched.map(\.segments) != dayez.map(\.segments) else { return }
         catalogue.replaceEpisodes(of: .dayez, with: enriched, at: catalogue.updatedAt ?? Date())
     }
@@ -452,9 +458,14 @@ final class AppModel {
         }
     }
 
+    /// An episode with its films' TMDB details and, for Dayez's, their chapter starts.
+    private func details(_ episode: Episode) -> Episode {
+        films.enrich(chapters.apply(to: episode))
+    }
+
     private func finishFilmBatch() {
         try? films.save()
-        applyFilmInfo()
+        applyDetails()
         try? catalogue.save(to: Catalogue.defaultLocation)
         rebuildIndex()
     }
@@ -469,7 +480,7 @@ final class AppModel {
             // One feed being down (Franky's server, say) doesn't keep the other from updating, and an
             // empty answer never wipes what's known.
             guard let episodes = try? await feed.episodes(), !episodes.isEmpty else { continue }
-            let fresh = episodes.map(films.enrich)
+            let fresh = episodes.map(details)
             // Most times nothing is new: then nothing is saved or indexed again, and the home page
             // isn't rebuilt under the listener's eyes.
             guard Set(fresh) != Set(catalogue.episodes.filter { $0.series == feed.series }) else { continue }
@@ -481,6 +492,39 @@ final class AppModel {
             rebuildIndex()
         }
         lookUpFilms()          // this week's three films, and any not found last time
+        lookUpChapters()
+    }
+
+    // MARK: Chapters in Dayez's files
+
+    /// Reads, in the background, the chapters of the Dayez files not read lately (a request for the
+    /// first few kilobytes of each). A film with a chapter then starts there everywhere: its marks on
+    /// the bar, the episode's programme, "Écouter la critique", the film playing on the lock screen.
+    func lookUpChapters() {
+        guard chapterLookup == nil else { return }
+        let pending = catalogue.episodes.filter { $0.series == .dayez && chapters.needsLookup($0) }
+        guard !pending.isEmpty else { return }
+        chapterLookup = Task { [chapterReader] in
+            var failures = 0
+            for episode in pending {
+                do {
+                    chapters.record(try await chapterReader.chapters(of: episode.audioURL), for: episode)
+                    failures = 0
+                } catch {
+                    // A file that can't be read is tried again next time; three in a row, the server is down.
+                    failures += 1
+                    if failures == 3 { break }
+                }
+            }
+            try? chapters.save()
+            let before = catalogue.episodes
+            applyDetails()
+            if catalogue.episodes != before {
+                try? catalogue.save(to: Catalogue.defaultLocation)
+                rebuildIndex()
+            }
+            chapterLookup = nil
+        }
     }
 
     func refresh(everything: Bool) async {

@@ -96,9 +96,22 @@ Settings, `xattr -dr com.apple.quarantine /Applications/5heures.app` clears the 
 RTBF's Auvio lists *Les critiques d'Hugues Dayez* publicly but plays it only to logged-in accounts, so
 the app reads Franky's own Audiobookshelf feed of it instead (`FeedClient.dayezFeed`, no login). Each
 title names the week's three films in one of several formats; `FeedClient.filmTitles(in:)` reads them
-(tests cover every format seen). They become film segments without a timecode: searchable, listed on
-the episode page, playing from the start of the ~9-minute episode. Interviews and asides are dropped.
-Feed shows are refreshed by replacing their episodes, so removed episodes go away.
+(tests cover every format seen). They become film segments: searchable, listed on the episode page,
+and timed by the file's own chapters when it has some (below), else playing from the start of the
+~9-minute episode. Interviews and asides are dropped. Feed shows are refreshed by replacing their
+episodes, so removed episodes go away.
+
+### Chapters in the files
+
+RTBF's MP3s carry no chapters, but Franky can add them before uploading (ID3v2.3 or 2.4 `CHAP` frames,
+as Podcast Chapters, ChapterPod or similar tools write them). The app reads each Dayez file's tag in
+the background, one request for its first 64 KB (`ChapterReader`, `ID3Chapters`), and gives each film
+the start of its chapter: matched by name (case, accents and punctuation aside), or in order when the
+chapters aren't named after the films, an opening "Introduction" aside. Every place that uses a
+review's time follows: the marks and the film's name on the bar, the episode's programme, "Écouter la
+critique", the film playing on the lock screen. What was found is kept
+(`~/Library/Application Support/CinqHeures/chapters.json`); a file is read again after 6 hours when
+its episode is under two months old, after a week otherwise, so chapters added or moved later show up.
 
 ### Film details from TMDB
 
