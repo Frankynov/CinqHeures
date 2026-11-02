@@ -243,24 +243,25 @@ struct FavoritesPage: View {
 
     var body: some View {
         let episodes = model.favoriteEpisodes
-        Group {
+        // The list stays, empty, under the message: shown on its own, the message laid the Mac's
+        // columns out wider than the window, which pushed the player bar off its right edge.
+        List {
+            ForEach(episodes) { episode in
+                NavigationLink(value: Route.episode(episode.id, highlight: nil)) {
+                    EpisodeRow(episode: episode)
+                }
+                .modifier(FavoriteActions(episode: episode, favorites: model.favorites))
+            }
+            Color.clear
+                .frame(height: sizeClass == .compact ? 0 : PlayerBar.reservedHeight)
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                .accessibilityHidden(true)
+        }
+        .overlay {
             if episodes.isEmpty {
                 ContentUnavailableView("Aucun favori", systemImage: "heart",
                                        description: Text("Touchez le cœur d'un épisode pour le retrouver ici."))
-            } else {
-                List {
-                    ForEach(episodes) { episode in
-                        NavigationLink(value: Route.episode(episode.id, highlight: nil)) {
-                            EpisodeRow(episode: episode)
-                        }
-                        .modifier(FavoriteActions(episode: episode, favorites: model.favorites))
-                    }
-                    Color.clear
-                        .frame(height: sizeClass == .compact ? 0 : PlayerBar.reservedHeight)
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                        .accessibilityHidden(true)
-                }
             }
         }
         .pageEdges()
