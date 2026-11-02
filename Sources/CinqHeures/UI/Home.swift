@@ -25,6 +25,10 @@ struct HomeView: View {
                 if !resuming.isEmpty {
                     ShelfRow(title: "Continuer l'écoute", items: Array(resuming), seeAll: nil, model: model)
                 }
+                let favorites = model.favoriteEpisodes.prefix(12).map { ShelfItem.episode($0, resume: nil) }
+                if !favorites.isEmpty {
+                    ShelfRow(title: "Favoris", items: Array(favorites), seeAll: .favorites, model: model)
+                }
                 ForEach(model.homeSections) { section in
                     switch section {
                     case .shelf(let shelf):

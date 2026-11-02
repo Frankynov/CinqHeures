@@ -220,6 +220,7 @@ struct ShowPage: View {
                         NavigationLink(value: Route.episode(episode.id, highlight: nil)) {
                             EpisodeRow(episode: episode, showSeries: series == nil)
                         }
+                        .modifier(FavoriteActions(episode: episode, favorites: model.favorites))
                     }
                 }
             }
@@ -232,6 +233,39 @@ struct ShowPage: View {
         .pageEdges()
         .navigationTitle(series?.fullTitle ?? "Récents")
         .navigationSubtitle((series?.host.map { "par \($0) · " } ?? "") + "\(episodes.count) épisodes")
+    }
+}
+
+/// The favourite episodes, the last one added first.
+struct FavoritesPage: View {
+    let model: AppModel
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    var body: some View {
+        let episodes = model.favoriteEpisodes
+        Group {
+            if episodes.isEmpty {
+                ContentUnavailableView("Aucun favori", systemImage: "heart",
+                                       description: Text("Touchez le cœur d'un épisode pour le retrouver ici."))
+            } else {
+                List {
+                    ForEach(episodes) { episode in
+                        NavigationLink(value: Route.episode(episode.id, highlight: nil)) {
+                            EpisodeRow(episode: episode)
+                        }
+                        .modifier(FavoriteActions(episode: episode, favorites: model.favorites))
+                    }
+                    Color.clear
+                        .frame(height: sizeClass == .compact ? 0 : PlayerBar.reservedHeight)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .accessibilityHidden(true)
+                }
+            }
+        }
+        .pageEdges()
+        .navigationTitle("Favoris")
+        .navigationSubtitle("\(episodes.count) épisode\(episodes.count > 1 ? "s" : "")")
     }
 }
 

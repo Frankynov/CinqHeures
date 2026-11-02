@@ -5,6 +5,7 @@ import SwiftUI
 /// title, the transport, the scrubber (with a mark at each film of the episode), volume and speed.
 struct PlayerBar: View {
     let player: PlayerModel
+    let favorites: Favorites
     /// Called when the now-playing block is clicked: opens the episode's page.
     let open: () -> Void
 
@@ -89,7 +90,7 @@ struct PlayerBar: View {
             .help(player.episode == nil ? "" : "Ouvrir l'épisode")
             #if os(iOS)
             .sheet(isPresented: $showsFullPlayer) {
-                FullPlayer(player: player, openEpisode: { showsFullPlayer = false; open() })
+                FullPlayer(player: player, favorites: favorites, openEpisode: { showsFullPlayer = false; open() })
                     .presentationDragIndicator(.visible)
             }
             #endif
@@ -148,6 +149,10 @@ struct PlayerBar: View {
                         .frame(width: 80)
                         .help("Volume")
                 }
+            }
+            if let episode = player.episode {
+                FavoriteButton(episode: episode, favorites: favorites, size: 16)
+                    .buttonStyle(.plain)
             }
             AirPlayButton(player: player, size: 24)
             Menu {
@@ -580,6 +585,7 @@ private struct SlowServerExplanation: View {
 /// iPhone's full-screen player: what's playing, big, with the controls under a thumb.
 struct FullPlayer: View {
     let player: PlayerModel
+    let favorites: Favorites
     let openEpisode: () -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -652,8 +658,8 @@ struct FullPlayer: View {
                 .buttonStyle(.plain)
                 .disabled(player.phase != .ready)
 
-                // Three icons in equal thirds, like the Music app's bottom row: the speed as "1×",
-                // AirPlay, the episode's programme. Words made the row lopsided.
+                // Icons in equal parts, like the Music app's bottom row: the speed as "1×", the
+                // favourite heart, AirPlay, the episode's programme. Words made the row lopsided.
                 HStack(spacing: 0) {
                     Menu {
                         ForEach(PlayerModel.speeds, id: \.self) { speed in
@@ -669,6 +675,11 @@ struct FullPlayer: View {
                     }
                     .accessibilityLabel("Vitesse de lecture")
                     .frame(maxWidth: .infinity)
+                    if let episode {
+                        FavoriteButton(episode: episode, favorites: favorites, size: 22)
+                            .frame(minWidth: 44, minHeight: 34)
+                            .frame(maxWidth: .infinity)
+                    }
                     AirPlayButton(player: player, size: 34, tint: brandOrange)
                         .frame(maxWidth: .infinity)
                     Button(action: openEpisode) {

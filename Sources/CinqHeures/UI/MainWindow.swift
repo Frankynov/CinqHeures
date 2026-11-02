@@ -46,7 +46,7 @@ struct MainWindow: View {
     }
 
     private var playerBar: some View {
-        PlayerBar(player: model.player, open: { model.openCurrentEpisode() })
+        PlayerBar(player: model.player, favorites: model.favorites, open: { model.openCurrentEpisode() })
             .padding(.horizontal, 16)
             .padding(.bottom, 12)
     }
@@ -84,6 +84,7 @@ struct MainWindow: View {
         } else {
             switch model.sidebar {
             case .home: HomeView(model: model)
+            case .favorites: FavoritesPage(model: model)
             case .all: ShowPage(series: nil, model: model)
             case .show(let series): ShowPage(series: series, model: model)
             case .score(let stars): ListingPage(listing: .stars(stars), model: model)
@@ -109,6 +110,7 @@ struct RoutePage: View {
         case .listing(let listing): ListingPage(listing: listing, model: model)
         case .show(let series): ShowPage(series: series, model: model)
         case .recent: ShowPage(series: nil, model: model)
+        case .favorites: FavoritesPage(model: model)
         }
     }
 }
@@ -150,6 +152,9 @@ struct SidebarView: View {
         List(selection: selection) {
             Label { Text("Accueil") } icon: { SidebarIcon(symbol: "house.fill", color: .blue) }
                 .tag(SidebarItem.home)
+            Label { Text("Favoris") } icon: { SidebarIcon(symbol: "heart.fill", color: .pink) }
+                .badge(model.favorites.ids.count)
+                .tag(SidebarItem.favorites)
             Section("Émissions") {
                 Label {
                     // Every episode of every show, newest first.

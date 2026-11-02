@@ -10,6 +10,8 @@ import UIKit
 /// A row of the sidebar. Not an optional `Series` with `nil` for "all": a List selection can't be nil.
 enum SidebarItem: Hashable {
     case home
+    /// The episodes marked as favourites.
+    case favorites
     /// Every episode of every show.
     case all
     case show(Series)
@@ -121,6 +123,7 @@ final class AppModel {
     var scope: SearchScope = .all
 
     let player = PlayerModel()
+    let favorites = Favorites()
     private let client = SiteClient()
     private let feeds = FeedClient.all
     /// Posters, synopses and directors for Dayez's films, from TMDB through Franky's proxy.
@@ -305,6 +308,15 @@ final class AppModel {
     func episode(id: Int) -> Episode? { catalogue.episode(id: id) }
 
     /// Episodes started and left unfinished, most recent first.
+    /// The favourite episodes the catalogue has, the last one added first.
+    var favoriteEpisodes: [Episode] {
+        let wanted = Set(favorites.ids)
+        guard !wanted.isEmpty else { return [] }
+        let found = Dictionary(catalogue.episodes.lazy.filter { wanted.contains($0.id) }.map { ($0.id, $0) },
+                               uniquingKeysWith: { first, _ in first })
+        return favorites.ids.compactMap { found[$0] }
+    }
+
     var continueListening: [(episode: Episode, seconds: Double)] {
         _ = player.progressRevision      // observed, so the shelf updates after a reset
         return player.unfinished().compactMap { entry in

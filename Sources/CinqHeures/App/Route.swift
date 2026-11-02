@@ -12,4 +12,6 @@ enum Route: Hashable {
     case show(Series)
     /// Every episode of every show, newest first (the sidebar's "Récents", as a page on iPhone).
     case recent
+    /// The favourite episodes (the sidebar's "Favoris", as a page on iPhone).
+    case favorites
 }

@@ -23,6 +23,11 @@ Notes for developers: how the app is built and how it reads each show. The main 
   windows), speed 0.8–2×, media keys; resumes where you left an episode; click the now-playing block
   to open its episode. Every page keeps room under its last row so nothing stays hidden behind it.
 
+- **Favoris**: a heart on the episode page, in the player (the bar on the Mac and iPad, the full
+  player on iPhone) and in an episode's context menu (or its swipe actions) adds it to the favourites:
+  a sidebar row (the Émissions tab on iPhone), a home shelf. Kept in UserDefaults by episode id
+  (`Favorites`), last added first; neither reset clears them.
+
 **5heures › Réinitialiser… (cache : …)** opens a sheet with two checkboxes, in any combination: the
 **cache** (catalogue and posters; the app then re-downloads like a first launch) and the **listening
 progress** (resume positions and *Continuer l'écoute*).

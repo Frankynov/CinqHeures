@@ -58,6 +58,9 @@ private struct EpisodeContent: View {
                         HStack {
                             SeriesBadge(series: episode.series)
                             Spacer()
+                            FavoriteButton(episode: episode, favorites: model.favorites)
+                                .buttonStyle(.bordered)
+                                .tint(.pink)
                             Button {
                                 model.play(episode)
                             } label: {

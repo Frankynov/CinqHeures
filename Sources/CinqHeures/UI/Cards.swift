@@ -301,6 +301,7 @@ struct EpisodeCard: View {
         .onHover { hovering = $0 }
         .contentShape(Rectangle())
         .onTapGesture { model.open(.episode(episode.id, highlight: nil)) }
+        .modifier(FavoriteActions(episode: episode, favorites: model.favorites))
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
     }

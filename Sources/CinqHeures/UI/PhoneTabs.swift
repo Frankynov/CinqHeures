@@ -46,7 +46,7 @@ struct PhoneTabs: View {
         }
         .tabBarMinimizeBehavior(.onScrollDown)
         .tabViewBottomAccessory {
-            MiniPlayer(player: model.player, openEpisode: { model.openCurrentEpisode() })
+            MiniPlayer(player: model.player, favorites: model.favorites, openEpisode: { model.openCurrentEpisode() })
         }
         .tint(brandOrange)
     }
@@ -58,6 +58,12 @@ private struct PhoneShowsList: View {
 
     var body: some View {
         List {
+            Section {
+                NavigationLink(value: Route.favorites) {
+                    Label { Text("Favoris") } icon: { SidebarIcon(symbol: "heart.fill", color: .pink) }
+                        .badge(model.favorites.ids.count)
+                }
+            }
             Section {
                 NavigationLink(value: Route.recent) {
                     Label { Text("Récents") } icon: { SidebarIcon(symbol: "clock.fill", color: .gray) }
@@ -101,6 +107,7 @@ private struct PhoneShowsList: View {
 /// beside the shrunk tab bar (inline), where it keeps only play/pause. A tap opens the full player.
 private struct MiniPlayer: View {
     let player: PlayerModel
+    let favorites: Favorites
     let openEpisode: () -> Void
     @Environment(\.tabViewBottomAccessoryPlacement) private var placement
     @ViewState private var showsFullPlayer = false
@@ -152,7 +159,7 @@ private struct MiniPlayer: View {
         .contentShape(Rectangle())
         .onTapGesture { if episode != nil { showsFullPlayer = true } }
         .sheet(isPresented: $showsFullPlayer) {
-            FullPlayer(player: player, openEpisode: { showsFullPlayer = false; openEpisode() })
+            FullPlayer(player: player, favorites: favorites, openEpisode: { showsFullPlayer = false; openEpisode() })
                 .presentationDragIndicator(.visible)
         }
     }

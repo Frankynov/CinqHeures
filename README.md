@@ -37,6 +37,9 @@ Pendant l'écoute, la barre de lecture marque chaque film ; survolez-la pour voi
 
 **Reprendre où vous en étiez.** *Continuer l'écoute* garde votre place dans chaque épisode.
 
+**Vos favoris.** Un cœur sur un épisode, ou dans le lecteur pendant l'écoute, et il vous attend dans
+*Favoris*, dans la barre latérale et sur l'accueil.
+
 **Et chaque semaine, du nouveau :** *Il est toujours 5 heures quelque part* de Rudy Léonet, et les
 critiques d'Hugues Dayez, avec affiches et résumés des films.
 
