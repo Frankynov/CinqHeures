@@ -440,44 +440,62 @@ final class AppModel {
     /// and where each film starts in the file. The one playing takes them too. Returns whether any changed.
     @discardableResult
     private func applyDetails() -> Bool {
-        let dayez = catalogue.episodes.filter { $0.series == .dayez }
-        guard !dayez.isEmpty else { return false }
-        let enriched = dayez.map(details)
-        guard enriched.map(\.segments) != dayez.map(\.segments) else { return false }
-        catalogue.replaceEpisodes(of: .dayez, with: enriched, at: catalogue.updatedAt ?? Date())
-        if let playing = player.episode, let updated = enriched.first(where: { $0.id == playing.id }) {
-            player.update(updated)
+        var changed = false
+        // Dayez's episodes, and the "Autre" specials, whose films come from their descriptions.
+        for series in [Series.dayez, .autre] {
+            let episodes = catalogue.episodes.filter { $0.series == series }
+            guard !episodes.isEmpty else { continue }
+            let enriched = episodes.map(details)
+            guard enriched.map(\.segments) != episodes.map(\.segments) else { continue }
+            catalogue.replaceEpisodes(of: series, with: enriched, at: catalogue.updatedAt ?? Date())
+            if let playing = player.episode, let updated = enriched.first(where: { $0.id == playing.id }) {
+                player.update(updated)
+            }
+            changed = true
         }
-        return true
+        return changed
     }
 
-    /// Looks up, in the background, the films not asked about yet. Paced well under the proxy's limit
-    /// (120 requests a minute; a film takes two to five), and stopped by any error other than "too many":
-    /// films not reached are asked about at the next launch.
+    /// Looks up, in the background, the films not asked about yet. Every request is paced under the proxy's
+    /// limit (`TMDBClient.Pacer`); a film that fails is skipped, three failures in a row stop the round, and
+    /// what wasn't reached is asked about at the next launch.
     func lookUpFilms() {
         guard filmLookup == nil else { return }
-        let pending = catalogue.episodes.filter { $0.series == .dayez }.flatMap { episode in
+        let dayez = catalogue.episodes.filter { $0.series == .dayez }.flatMap { episode in
             episode.spokenFilms.filter { films.needsLookup(title: $0, date: episode.date) }
-                .map { (title: $0, date: episode.date, hints: episode.summary) }
+                .map { (title: $0, date: episode.date, hints: episode.summary, named: NamedFilm?.none) }
         }
+        // The "Autre" specials' films, named with their director: about 270, looked up once.
+        let autre = catalogue.episodes.filter { $0.series == .autre }.flatMap { episode in
+            AutreProgramme.films(in: episode.summary).filter { films.needsLookup(title: $0.title, date: episode.date) }
+                .map { (title: $0.title, date: episode.date, hints: "", named: Optional($0)) }
+        }
+        let pending = dayez + autre
         guard !pending.isEmpty else { return }
         filmLookup = Task { [tmdb] in
             var done = 0
+            var failures = 0
             lookups: for film in pending {
-                for attempt in 0..<2 {
+                for attempt in 0..<3 {
                     do {
-                        let info = try await tmdb.film(titled: film.title, discussedOn: film.date, hints: film.hints)
+                        let info = if let named = film.named { try await tmdb.film(named: named) }
+                                   else { try await tmdb.film(titled: film.title, discussedOn: film.date, hints: film.hints) }
                         films.record(info, title: film.title, date: film.date)
+                        failures = 0
                         break
-                    } catch SiteError.http(429) where attempt == 0 {
-                        try? await Task.sleep(for: .seconds(65))
+                    } catch SiteError.http(429) where attempt < 2 {
+                        try? await Task.sleep(for: .seconds(65))       // the proxy's minute is over
                     } catch {
-                        break lookups
+                        // A film that can't be asked about now (a timeout, the server busy) is left for the
+                        // next launch; three in a row and the server is down, so the rest waits too.
+                        failures += 1
+                        if failures == 3 { break lookups }
+                        break
                     }
                 }
                 done += 1
                 if done % 6 == 0 { finishFilmBatch() }   // posters appear as they come
-                try? await Task.sleep(for: .milliseconds(1500))
+                try? await Task.sleep(for: .milliseconds(500))
             }
             finishFilmBatch()
             filmLookup = nil
@@ -486,7 +504,7 @@ final class AppModel {
 
     /// An episode with its films' TMDB details and, for Dayez's, their chapter starts.
     private func details(_ episode: Episode) -> Episode {
-        films.enrich(chapters.apply(to: episode))
+        films.enrich(chapters.apply(to: episode)).withNamedFilms(from: films)
     }
 
     private func finishFilmBatch() {
@@ -617,6 +635,7 @@ final class AppModel {
                 sync = .running(done: index + 1, of: jobs.count)
             }
             if everything { catalogue.markDownloadedInFull() }
+            applyDetails()          // the "Autre" specials come without their films
             try? catalogue.save(to: Catalogue.defaultLocation)
             rebuildIndex()
             sync = .idle

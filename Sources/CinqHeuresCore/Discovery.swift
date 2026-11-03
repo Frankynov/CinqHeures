@@ -134,7 +134,8 @@ public struct Discovery: Sendable {
         case .stars(let n):
             chosen = unique(films.filter { $0.segment.stars == n })
         case .unrated:
-            chosen = unique(films.filter { $0.segment.stars == nil })
+            // Reviewed without a score: not the films an "Autre" special only talks about.
+            chosen = unique(films.filter { $0.segment.stars == nil && $0.episode.series != .autre })
         case .rediscover:
             chosen = unique(films.filter { ($0.segment.year ?? thisYear) <= thisYear - 10 && ($0.segment.stars ?? 0) >= 3 })
         case .series:

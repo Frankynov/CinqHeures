@@ -72,7 +72,23 @@ public struct TMDBClient: Sendable {
         let credits: Credits?
     }
 
+    /// Spaces requests out over the whole app: the proxy lets each visitor make 120 a minute, and one
+    /// film can take ten (a title not found at once is searched in two languages, candidates checked).
+    actor Pacer {
+        static let shared = Pacer()
+        static let gap: Duration = .milliseconds(600)
+        private var next = ContinuousClock.now
+
+        func wait() async {
+            let now = ContinuousClock.now
+            let slot = max(now, next)
+            next = slot + Self.gap
+            if slot > now { try? await Task.sleep(until: slot, clock: .continuous) }
+        }
+    }
+
     func get<T: Decodable>(_ path: String, _ params: [String: String]) async throws -> T {
+        if case .proxy = route { await Pacer.shared.wait() }
         var components: URLComponents
         var request: URLRequest
         switch route {
@@ -208,6 +224,9 @@ public struct FilmLibrary: Codable, Sendable {
     }
 
     public func info(title: String, date: Date) -> FilmInfo? { entries[Self.key(title: title, date: date)]?.info }
+
+    /// Whether the film was looked up, found or not.
+    public func knows(title: String, date: Date) -> Bool { entries[Self.key(title: title, date: date)] != nil }
 
     /// Not looked up yet, or not found a while ago. TMDB fills in new releases over their first days
     /// (Moulin, La Gradiva and The Only Living Pickpocket weren't findable the day their episode came

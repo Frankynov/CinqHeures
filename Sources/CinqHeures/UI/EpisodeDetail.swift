@@ -84,7 +84,7 @@ private struct EpisodeContent: View {
                                 .font(.title3.weight(.bold))
                                 .padding(.bottom, 10)
                             ForEach(Array(episode.segments.enumerated()), id: \.element.id) { index, segment in
-                                if index > 0 { Divider().padding(.leading, 98) }
+                                if index > 0 { Divider().padding(.leading, episode.segments.contains { $0.start != nil } ? 98 : 46) }
                                 SegmentRow(segment: segment, episode: episode, model: model,
                                            isHighlighted: segment.id == highlighted,
                                            isPlaying: isCurrent && player.currentSegmentID == segment.id)
@@ -124,11 +124,16 @@ private struct SegmentRow: View {
 
     var body: some View {
         let isSubject = segment.kind.isSubject
+        // The "Autre" specials have no timecodes at all: no column of dashes, no buttons all playing
+        // from the start (the episode's own button does that).
+        let timed = episode.segments.contains { $0.start != nil }
         HStack(spacing: 10) {
-            Text(segment.start.map(clock) ?? "–")
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
-                .frame(width: 52, alignment: .trailing)
+            if timed {
+                Text(segment.start.map(clock) ?? "–")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .frame(width: 52, alignment: .trailing)
+            }
             if isSubject {
                 Poster(url: segment.posterURL, width: 26)
             } else {
@@ -163,15 +168,17 @@ private struct SegmentRow: View {
             if isPlaying {
                 Image(systemName: "speaker.wave.2.fill").foregroundStyle(Color.accentColor)
             }
-            Button {
-                model.play(episode, from: segment)
-            } label: {
-                Label("Écouter", systemImage: "play.fill")
+            if timed {
+                Button {
+                    model.play(episode, from: segment)
+                } label: {
+                    Label("Écouter", systemImage: "play.fill")
+                }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .help("Écouter à partir de \(clock(segment.start ?? 0))")
             }
-            .labelStyle(.iconOnly)
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .help("Écouter à partir de \(clock(segment.start ?? 0))")
         }
         .padding(.vertical, 2)
     }

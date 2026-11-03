@@ -16,7 +16,10 @@ struct WorkPage: View {
     private var compact: Bool { sizeClass == .compact || isNarrow }
 
     var body: some View {
-        if let work = model.work(kind: kind, title: title), let latest = work.mentions.first {
+        // "Écouter la critique" plays the newest passage with a time: an "Autre" special only mentions a
+        // film, from the start of an untimed episode, when a review of it may be elsewhere.
+        if let work = model.work(kind: kind, title: title),
+           let latest = work.mentions.first(where: { $0.segment.start != nil }) ?? work.mentions.first {
             let segment = latest.segment
             ScrollView {
                 VStack(alignment: .leading, spacing: compact ? 22 : 30) {

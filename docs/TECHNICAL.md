@@ -131,6 +131,21 @@ discussed). Both are looked up when the page is first opened and kept
 (`~/Library/Application Support/CinqHeures/details.json`); a title with nothing found is asked about
 again after a week.
 
+### The "Autre" specials
+
+5heures.be gives its "Autre" episodes (themed specials, summer shows) no segments and no timecodes,
+only a description: "Thème : Monaco Cinéma : La Main au collet (Alfred Hitchcock), … et La fille de
+Monaco (Anne Fontaine) Musique : …". `AutreProgramme` reads the film list from it (to the next section,
+or to the film after "et", which ends a French list); songs are left out. Each film is looked up on TMDB
+with the other films (`TMDBClient.film(named:)`): a result of that title, confirmed by the director in
+brackets (a misspelt surname still counts), with no date limit since these are classics as often as
+new films. Found films become the episode's programme, untimed, with poster and synopsis and the
+archive's title format, so they link up with 5heures.be's own reviews; ones not found (an author in
+the brackets, a remark) are dropped. They stay out of *Sans note*, which lists reviews. 243 films in
+98 of the 167 episodes, in about six minutes on first launch. Every TMDB request goes through one
+pacer (100 a minute, under the proxy's 120), and a film that fails is skipped rather than stopping
+the round.
+
 ### Film details from TMDB
 
 Dayez's films get a poster, their French and original titles, the director and a synopsis from
