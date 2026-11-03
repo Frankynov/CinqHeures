@@ -27,6 +27,12 @@
 			path = ../Sources/CinqHeures;
 			sourceTree = "<group>";
 		};
+		C500000000000000000000D3 /* Snapshot */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = Snapshot;
+			path = ../Resources/Snapshot;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -46,6 +52,7 @@
 			children = (
 				C500000000000000000000D1 /* App */,
 				C500000000000000000000D2 /* Shared */,
+				C500000000000000000000D3 /* Snapshot */,
 				C500000000000000000000C2 /* Info.plist */,
 				C500000000000000000000F2 /* Products */,
 			);
@@ -77,6 +84,7 @@
 			fileSystemSynchronizedGroups = (
 				C500000000000000000000D1 /* App */,
 				C500000000000000000000D2 /* Shared */,
+				C500000000000000000000D3 /* Snapshot */,
 			);
 			name = 5heures;
 			packageProductDependencies = (

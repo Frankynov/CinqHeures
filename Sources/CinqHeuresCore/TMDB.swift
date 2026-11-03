@@ -243,6 +243,19 @@ public struct FilmLibrary: Codable, Sendable {
         entries[Self.key(title: title, date: date)] = Entry(info: info, checked: now)
     }
 
+    /// Takes what `other` knows and this library doesn't (the films shipped with the app, say): films
+    /// found, and titles not found, which are then not asked about again until their time comes.
+    /// Returns whether it took any.
+    @discardableResult
+    public mutating func adopt(_ other: FilmLibrary) -> Bool {
+        var took = false
+        for (key, entry) in other.entries where entries[key] == nil || (entry.info != nil && entries[key]?.info == nil) {
+            entries[key] = entry
+            took = true
+        }
+        return took
+    }
+
     /// The episode with each film it names replaced by what TMDB knows: the archive's title format
     /// (so it links up with 5heures.be's own reviews of it), a poster, a synopsis and its director.
     public func enrich(_ episode: Episode) -> Episode {

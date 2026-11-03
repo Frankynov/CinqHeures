@@ -58,3 +58,18 @@ import Testing
         #expect(podcast.withNamedFilms(from: library) == podcast)
     }
 }
+
+@Suite struct ShippedSnapshotTests {
+    /// The snapshot the apps ship: current fields, every show, and the "Autre" films already matched.
+    @Test func theShippedCatalogueIsCurrentAndComplete() throws {
+        let folder = URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("../../Resources/Snapshot")
+        let catalogue = try #require(Catalogue.load(from: folder.appendingPathComponent("snapshot-catalogue.json")))
+        #expect(!catalogue.needsFullDownload)
+        #expect(Set(catalogue.episodes.map(\.series)) == Set(Series.allCases))
+        #expect(catalogue.episodes.flatMap(\.segments).contains { $0.slug != nil })
+        let films = FilmLibrary.load(from: folder.appendingPathComponent("snapshot-films.json"))
+        #expect(films.entries.values.filter { $0.info != nil }.count > 300)
+        var mine = FilmLibrary()
+        #expect(mine.adopt(films) && !mine.adopt(films))
+    }
+}

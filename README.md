@@ -61,8 +61,8 @@ critiques d'Hugues Dayez, avec affiches et résumés des films.
 3. La première fois, macOS refuse de l'ouvrir : l'app est gratuite et n'est pas passée par l'App Store.
    Fermez le message, ouvrez **Réglages Système › Confidentialité et sécurité**, descendez jusqu'au
    message à propos de *5heures* et cliquez sur **Ouvrir quand même**. Ce n'est à faire qu'une fois.
-4. Au premier lancement, l'app télécharge la liste des émissions depuis 5heures.be (une vingtaine de
-   secondes). Ensuite, tout est prêt.
+4. C'est prêt : l'app contient déjà toutes les émissions et leurs films, et ne vérifie que les
+   nouveaux épisodes.
 
 > **Une écoute qui tarde à démarrer ?** Le serveur de 5heures.be met parfois une minute ou deux à
 > retrouver un vieil épisode qu'on ne lui a pas demandé depuis longtemps. L'app patiente et affiche

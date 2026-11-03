@@ -172,7 +172,11 @@ final class AppModel {
     var showsReset = false
 
     init() {
-        catalogue = Catalogue.load(from: Catalogue.defaultLocation) ?? Catalogue()
+        // What this device saved; else (a first launch, or a catalogue kept with fewer fields) the one
+        // shipped with the app, which only needs its newest episodes.
+        let saved = Catalogue.load(from: Catalogue.defaultLocation)
+        catalogue = saved.flatMap { $0.needsFullDownload ? nil : $0 } ?? Self.shippedCatalogue() ?? saved ?? Catalogue()
+        if films.adopt(Self.shippedFilms()) { try? films.save() }
         rebuildIndex()
         updateCacheUsage()
         // Posters pile up while browsing: measure again now and then, so the menu's figure is current.
@@ -219,7 +223,7 @@ final class AppModel {
         sidebar = .home
         await catalogueSave?.value         // a save still running would write it back
         try? FileManager.default.removeItem(at: Catalogue.defaultLocation)
-        catalogue = Catalogue()
+        catalogue = Self.shippedCatalogue() ?? Catalogue()
         // The caches delete their own files (in the background). Deleting their folders instead
         // pulls the database out from under them, and nothing gets cached again until a relaunch.
         PosterCache.shared.clear()
@@ -525,6 +529,19 @@ final class AppModel {
         let films = AutreProgramme.films(in: episode.summary)
         autreFilms[episode.id] = (episode.summary, films)
         return films
+    }
+
+    /// The catalogue as it was when this version was built (`Tools/snapshot.sh`), in the app's resources:
+    /// a first launch starts from it instead of downloading some 35 pages from 5heures.be, whose
+    /// shows have stopped. Its newest year and the two feeds are then checked as on any launch.
+    static func shippedCatalogue() -> Catalogue? {
+        Bundle.main.url(forResource: "snapshot-catalogue", withExtension: "json").flatMap(Catalogue.load(from:))
+            .flatMap { $0.needsFullDownload || $0.isEmpty ? nil : $0 }
+    }
+
+    /// The films matched on TMDB when the snapshot was made, so a first launch doesn't look them up again.
+    static func shippedFilms() -> FilmLibrary {
+        Bundle.main.url(forResource: "snapshot-films", withExtension: "json").map { FilmLibrary.load(from: $0) } ?? FilmLibrary()
     }
 
     /// Saves the catalogue (4 MB of JSON, some 30 ms) off the main thread, each save after the last.

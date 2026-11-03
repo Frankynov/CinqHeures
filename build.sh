@@ -50,6 +50,8 @@ if xcrun --find actool >/dev/null 2>&1 && [ -d Resources/Icon/AppIcon.icon ]; th
   fi
 fi
 [ -f Resources/AppIcon.icns ] && cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+# The catalogue as of this version (Tools/snapshot.sh): a first launch starts from it.
+cp Resources/Snapshot/snapshot-*.json "$APP/Contents/Resources/"
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

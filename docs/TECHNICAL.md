@@ -72,9 +72,16 @@ path to the busiest one) and takes screenshots: tables in the run's summary, fil
 (`Tools/ci/`). Once the app has run there, the core tests also time searches, the home page rebuild and
 a sort by name on the real catalogue.
 
-First launch downloads the catalogue (~40 requests, ~4 MB saved in
-`~/Library/Application Support/CinqHeures/catalogue.json`); later launches refresh only the newest
-year of each show, at most every 12 hours. `Tools/crawl.sh <folder>` downloads the same raw JSON.
+The apps ship with the catalogue (`Resources/Snapshot`: every episode, and the films already
+matched on TMDB), so a first launch shows everything at once instead of downloading some 35 pages
+from 5heures.be (about 50 s) and looking up the "Autre" films (about 6 minutes). Every launch then
+checks the newest year of each show, at most every 12 hours, and the two feeds (only Quelque part and
+Dayez still get new episodes); what it finds is saved in
+`~/Library/Application Support/CinqHeures/catalogue.json`. A saved catalogue with fewer fields than the
+app keeps (an older `Catalogue.currentSchema`) is replaced by the shipped one rather than downloaded
+again. Before a release, `Tools/snapshot.sh` refreshes the snapshot from this Mac's own copy (let the
+app refresh and finish its lookups first); `build.sh` copies it into the Mac app, and the iOS project
+takes the folder as it is. `Tools/crawl.sh <folder>` downloads the same raw JSON.
 
 ## How it works
 
