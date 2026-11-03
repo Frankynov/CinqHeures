@@ -96,8 +96,12 @@ extension Episode {
     /// episodes have no timecodes), each with TMDB's poster, synopsis and archive title once found,
     /// so it links up with the other passages about the same film. Other episodes are unchanged.
     public func withNamedFilms(from library: FilmLibrary) -> Episode {
+        withNamedFilms(AutreProgramme.films(in: summary), from: library)
+    }
+
+    /// The same, with the films already read from the description (reading all of them takes a while).
+    public func withNamedFilms(_ named: [NamedFilm], from library: FilmLibrary) -> Episode {
         guard series == .autre, segments.allSatisfy({ $0.id < 0 }) else { return self }
-        let named = AutreProgramme.films(in: summary)
         let programme = named.enumerated().compactMap { index, film -> Segment? in
             // Below zero, out of the way of the site's own ids; far from the feeds' (see FeedClient.stableID).
             let segmentID = -(3_000_000_000 + id * 100 + index)

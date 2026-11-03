@@ -138,6 +138,8 @@ final class AppModel {
     /// their pages are opened. Observed: a page shows its synopsis when it arrives.
     private(set) var workDetails = WorkDetailsLibrary.load()
     private var detailLookups: Set<String> = []
+    @ObservationIgnored private var autreFilms: [Int: (summary: String, films: [NamedFilm])] = [:]
+    @ObservationIgnored private var catalogueSave: Task<Void, Never>?
     /// The files `lookUpChapters(of:)` is reading.
     private var chapterChecks: Set<URL> = []
     private var lastFeedRefresh = Date.distantPast
@@ -215,6 +217,7 @@ final class AppModel {
         path = []
         searchText = ""
         sidebar = .home
+        await catalogueSave?.value         // a save still running would write it back
         try? FileManager.default.removeItem(at: Catalogue.defaultLocation)
         catalogue = Catalogue()
         // The caches delete their own files (in the background). Deleting their folders instead
@@ -475,6 +478,7 @@ final class AppModel {
         filmLookup = Task { [tmdb] in
             var done = 0
             var failures = 0
+            var shown = ContinuousClock.now
             lookups: for film in pending {
                 for attempt in 0..<3 {
                     do {
@@ -494,7 +498,12 @@ final class AppModel {
                     }
                 }
                 done += 1
-                if done % 6 == 0 { finishFilmBatch() }   // posters appear as they come
+                // Posters appear as they come, but at most every 20 seconds: each time redraws the pages,
+                // and a first launch looks up some 270 films.
+                if done % 6 == 0, ContinuousClock.now - shown > .seconds(20) {
+                    finishFilmBatch()
+                    shown = ContinuousClock.now
+                }
                 try? await Task.sleep(for: .milliseconds(500))
             }
             finishFilmBatch()
@@ -504,13 +513,34 @@ final class AppModel {
 
     /// An episode with its films' TMDB details and, for Dayez's, their chapter starts.
     private func details(_ episode: Episode) -> Episode {
-        films.enrich(chapters.apply(to: episode)).withNamedFilms(from: films)
+        let enriched = films.enrich(chapters.apply(to: episode))
+        guard episode.series == .autre else { return enriched }
+        return enriched.withNamedFilms(namedFilms(in: episode), from: films)
+    }
+
+    /// An "Autre" episode's films, read from its description once: reading all 167 again at every
+    /// batch of lookups took 18 ms of the main thread.
+    private func namedFilms(in episode: Episode) -> [NamedFilm] {
+        if let known = autreFilms[episode.id], known.summary == episode.summary { return known.films }
+        let films = AutreProgramme.films(in: episode.summary)
+        autreFilms[episode.id] = (episode.summary, films)
+        return films
+    }
+
+    /// Saves the catalogue (4 MB of JSON, some 30 ms) off the main thread, each save after the last.
+    private func saveCatalogue() {
+        let snapshot = catalogue
+        let previous = catalogueSave
+        catalogueSave = Task.detached(priority: .utility) {
+            await previous?.value
+            try? snapshot.save(to: Catalogue.defaultLocation)
+        }
     }
 
     private func finishFilmBatch() {
         try? films.save()
         applyDetails()
-        try? catalogue.save(to: Catalogue.defaultLocation)
+        saveCatalogue()
         rebuildIndex()
     }
 
@@ -532,7 +562,7 @@ final class AppModel {
             changed = true
         }
         if changed {
-            try? catalogue.save(to: Catalogue.defaultLocation)
+            saveCatalogue()
             rebuildIndex()
         }
         lookUpFilms()          // this week's three films, and any not found last time
@@ -610,7 +640,7 @@ final class AppModel {
     private func chaptersRead() {
         try? chapters.save()
         guard applyDetails() else { return }
-        try? catalogue.save(to: Catalogue.defaultLocation)
+        saveCatalogue()
         rebuildIndex()
     }
 
@@ -636,13 +666,13 @@ final class AppModel {
             }
             if everything { catalogue.markDownloadedInFull() }
             applyDetails()          // the "Autre" specials come without their films
-            try? catalogue.save(to: Catalogue.defaultLocation)
+            saveCatalogue()
             rebuildIndex()
             sync = .idle
             updateCacheUsage()
         } catch {
             // Keep whatever was fetched so far: it's still searchable.
-            if !catalogue.isEmpty { try? catalogue.save(to: Catalogue.defaultLocation); rebuildIndex() }
+            if !catalogue.isEmpty { saveCatalogue(); rebuildIndex() }
             sync = .failed(error.localizedDescription)
         }
     }
