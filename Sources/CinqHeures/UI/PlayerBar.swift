@@ -28,7 +28,9 @@ struct PlayerBar: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 9)
         .modifier(GlassPanel(cornerRadius: 22))
-        .frame(maxWidth: 1240)
+        // The width it's given, not the one it takes: a bar too wide for its column measured itself
+        // as wide, and so never took its narrow form.
+        .frame(minWidth: 0, maxWidth: 1240)
         .onGeometryChange(for: Bool.self) { $0.size.width < 760 } action: { isNarrow = $0 }
     }
 
@@ -44,20 +46,19 @@ struct PlayerBar: View {
     /// One row: artwork and title, transport, scrubber, (volume on the Mac,) speed.
     private var wide: some View {
         HStack(spacing: 16) {
+            // On a narrow window (the Mac's smallest leaves about 650 points) the title and the scrubber
+            // give up some width, rather than the bar running past both edges of the column.
             nowPlayingButton
-                .frame(minWidth: 170, idealWidth: 270, maxWidth: 300, alignment: .leading)
+                .frame(minWidth: isNarrow ? 110 : 170, idealWidth: 270, maxWidth: 300, alignment: .leading)
             transport
                 .disabled(player.phase != .ready)
             // The scrubber gets the room first: on a narrow window the volume slider goes instead.
             ChapterScrubber(player: player)
-                .frame(minWidth: 280)
+                .frame(minWidth: isNarrow ? 170 : 280)
                 .layoutPriority(1)
             #if os(macOS)
-            ViewThatFits(in: .horizontal) {
-                trailing(withVolume: true)
-                trailing(withVolume: false)
-            }
-            .fixedSize()
+            // The volume slider goes first when the window is narrow: the Mac keys still set it.
+            trailing(withVolume: !isNarrow).fixedSize()
             #else
             // iPhone and iPad: the device's own volume buttons.
             trailing(withVolume: false).fixedSize()
@@ -250,14 +251,18 @@ private struct InfoLine: View {
                         .accessibilityLabel("\(stars) étoile\(stars > 1 ? "s" : "") sur 4")
                 }
                 showAndDate
+                badge
             }
         } else {
-            showAndDate
+            ViewThatFits(in: .horizontal) { showAndDate; badge }
         }
         #else
-        showAndDate
+        // On a narrow window the date goes, rather than running under the buttons.
+        ViewThatFits(in: .horizontal) { showAndDate; badge }
         #endif
     }
+
+    private var badge: some View { SeriesBadge(series: episode.series) }
 
     private var showAndDate: some View {
         HStack(spacing: 5) {
