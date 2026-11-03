@@ -15,7 +15,10 @@ struct HomeView: View {
     }
 
     private var content: some View {
-            VStack(alignment: .leading, spacing: 34) {
+            // Lazy: only the shelves on screen are built. All of them at once (some ten rows of cards,
+            // most below the window) cost about 170 ms each time the page appeared, and again under
+            // every page pushed from it.
+            LazyVStack(alignment: .leading, spacing: 34) {
                 if let hero = model.hero {
                     HeroView(mention: hero, model: model)
                         .id(hero.segment.id)
