@@ -102,10 +102,13 @@ public struct Segment: Codable, Hashable, Identifiable, Sendable {
     public let overview: String?
     public let director: String?
     public let localTitle: String?
+    /// The film's page on 5heures.be (`/api/movies/<slug>`), which has its synopsis. Films only;
+    /// missing in a catalogue downloaded before it was kept.
+    public let slug: String?
 
     public init(id: Int, title: String, kind: SegmentKind, start: Double?, verdict: String?,
                 score: Double? = nil, posterURL: URL?, overview: String? = nil, director: String? = nil,
-                localTitle: String? = nil) {
+                localTitle: String? = nil, slug: String? = nil) {
         self.id = id
         self.title = title
         self.kind = kind
@@ -116,6 +119,7 @@ public struct Segment: Codable, Hashable, Identifiable, Sendable {
         self.overview = overview
         self.director = director
         self.localTitle = localTitle
+        self.slug = slug
     }
 
     /// The release year at the end of a film's title: "Oblivion (2013)" is 2013.

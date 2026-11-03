@@ -53,6 +53,9 @@ struct WorkPage: View {
             .onGeometryChange(for: Bool.self) { $0.size.width > 0 && $0.size.width < 560 } action: { isNarrow = $0 }
             .pageEdges()
             .task(id: latest.segment.id) { model.warm(latest.episode, at: latest.segment) }
+            // Keyed by what's looked up: a film opened just after the catalogue was downloaded again can
+            // show its old entry (no slug yet) until the index is rebuilt.
+            .task(id: WorkDetails.key(for: work)) { model.lookUpDetails(of: work) }
             .navigationTitle(segment.displayTitle)
             .navigationSubtitle(kind.label)
             #if os(iOS)
@@ -65,9 +68,10 @@ struct WorkPage: View {
 
     /// Title, French title, and the line of facts.
     private func titleBlock(work: Work, segment: Segment) -> some View {
-        // From TMDB, for films that don't come from 5heures.be (Dayez's): the French title, the director.
-        let local = work.mentions.lazy.compactMap(\.segment.localTitle).first
-        let director = work.mentions.lazy.compactMap(\.segment.director).first
+        // Dayez's films have them from TMDB; 5heures.be's from the film's page on the site, once looked up.
+        let fetched = model.details(of: work)
+        let local = work.mentions.lazy.compactMap(\.segment.localTitle).first ?? fetched?.localTitle
+        let director = work.mentions.lazy.compactMap(\.segment.director).first ?? fetched?.director
         return VStack(alignment: .leading, spacing: compact ? 6 : 10) {
             Text(segment.displayTitle)
                 .font(compact ? .title.weight(.bold) : .largeTitle.weight(.bold))
@@ -90,7 +94,11 @@ struct WorkPage: View {
 
     /// The synopsis and the play button.
     private func details(work: Work, latest: Work.Mention) -> some View {
-        let overview = work.mentions.lazy.compactMap(\.segment.overview).first
+        let own = work.mentions.lazy.compactMap(\.segment.overview).first
+        let fetched = model.details(of: work)
+        let overview = own ?? fetched?.overview
+        let credit = own != nil ? "Synopsis et affiche : TMDB"
+            : fetched?.source == .tmdb ? "Synopsis : TMDB" : "Synopsis : 5heures.be"
         return VStack(alignment: .leading, spacing: 10) {
             if let overview {
                 Text(overview)
@@ -100,7 +108,7 @@ struct WorkPage: View {
                     .frame(maxWidth: 620, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
                     .textSelection(.enabled)
-                Text("Synopsis et affiche : TMDB").font(.caption2).foregroundStyle(.tertiary)
+                Text(credit).font(.caption2).foregroundStyle(.tertiary)
             }
             Button {
                 model.play(latest.episode, from: latest.segment)

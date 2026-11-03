@@ -264,6 +264,6 @@ extension Segment {
     /// The same segment, starting at `start`.
     func starting(at start: Double?) -> Segment {
         Segment(id: id, title: title, kind: kind, start: start, verdict: verdict, score: score, posterURL: posterURL,
-                overview: overview, director: director, localTitle: localTitle)
+                overview: overview, director: director, localTitle: localTitle, slug: slug)
     }
 }

@@ -121,6 +121,16 @@ Opening the episode or one of its films, or playing it, reads the file again at 
 minute), so a file replaced with a chaptered copy shows its chapters the next time it's looked at; an
 episode already playing takes the new starts too.
 
+### Synopses of 5heures.be's films and series
+
+A film page shows the film's synopsis, French title and director from its own page on the site,
+`/api/movies/<slug>` (the catalogue keeps each film's slug since schema 3, which made every saved
+catalogue download once more). Series have no page there, so theirs comes from a TMDB series search
+through the proxy (`search/tv`, the series of that exact name already on the air when it was
+discussed). Both are looked up when the page is first opened and kept
+(`~/Library/Application Support/CinqHeures/details.json`); a title with nothing found is asked about
+again after a week.
+
 ### Film details from TMDB
 
 Dayez's films get a poster, their French and original titles, the director and a synopsis from

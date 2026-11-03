@@ -20,6 +20,7 @@ struct WireEpisode: Decodable {
         let score_text: String?
         let score: LooseString?
         let poster_url: String?
+        let slug: String?
     }
     let id: Int
     let kind: String
@@ -40,7 +41,8 @@ struct WireEpisode: Decodable {
             let verdict = part.score_text.flatMap { $0.isEmpty ? nil : $0 }
             return Segment(id: part.id, title: part.display_name, kind: kind, start: part.start_second,
                            verdict: verdict, score: Segment.parseScore(part.score?.value),
-                           posterURL: part.poster_url.flatMap(URL.init(string:)))
+                           posterURL: part.poster_url.flatMap(URL.init(string:)),
+                           slug: kind == .movie ? part.slug.flatMap { $0.isEmpty ? nil : $0 } : nil)
         }
         return Episode(id: id, series: series, date: date, summary: description ?? "", audioURL: audio,
                        segments: segments)

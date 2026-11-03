@@ -5,7 +5,8 @@ import Foundation
 public struct Catalogue: Codable, Sendable {
     /// Bumped when the app starts keeping something new from each episode; a saved catalogue with
     /// an older number is downloaded again once (and stays usable until then).
-    public static let currentSchema = 2
+    /// 3: each film's slug, for its synopsis.
+    public static let currentSchema = 3
 
     public private(set) var episodes: [Episode]
     public private(set) var updatedAt: Date?

@@ -72,7 +72,7 @@ public struct TMDBClient: Sendable {
         let credits: Credits?
     }
 
-    private func get<T: Decodable>(_ path: String, _ params: [String: String]) async throws -> T {
+    func get<T: Decodable>(_ path: String, _ params: [String: String]) async throws -> T {
         var components: URLComponents
         var request: URLRequest
         switch route {

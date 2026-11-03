@@ -61,7 +61,7 @@ public struct SiteClient: Sendable {
     }
 
     /// The site's CDN answers 503 now and then; asking again a moment later works.
-    private func get(_ path: String, query: [URLQueryItem]) async throws -> Data {
+    func get(_ path: String, query: [URLQueryItem]) async throws -> Data {
         var components = URLComponents(url: base.appendingPathComponent(path), resolvingAgainstBaseURL: false)!
         if !query.isEmpty { components.queryItems = query }
         var request = URLRequest(url: components.url!)

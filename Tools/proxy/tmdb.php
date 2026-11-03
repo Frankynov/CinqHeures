@@ -6,6 +6,7 @@
  * Only what the app needs is passed through:
  *   tmdb.php?path=search/movie&query=Coward&language=fr-FR&year=2026
  *   tmdb.php?path=movie/123456&language=fr-FR&append_to_response=credits
+ *   tmdb.php?path=search/tv&query=Ted%20Lasso&language=fr-FR
  * Answers are cached on disk for 30 days, and each visitor is limited to 120 requests a minute.
  *
  * The token lives in tmdb-config.php (not in the repo). It's looked for next to this file, then in
@@ -36,7 +37,7 @@ if ($token === '') fail(500, 'proxy not configured');
 
 // ---- what may be asked --------------------------------------------------------------------------
 $path = $_GET['path'] ?? '';
-if (!preg_match('#^(search/movie|movie/\d{1,9}(/credits)?)$#', $path)) fail(400, 'path not allowed');
+if (!preg_match('#^(search/(movie|tv)|movie/\d{1,9}(/credits)?)$#', $path)) fail(400, 'path not allowed');
 
 $allowed = ['query', 'language', 'year', 'primary_release_year', 'page', 'include_adult', 'append_to_response', 'region'];
 $params = [];

@@ -134,6 +134,10 @@ final class AppModel {
     private var chapters = ChapterLibrary.load()
     private let chapterReader = ChapterReader()
     private var chapterLookup: Task<Void, Never>?
+    /// Synopses, French titles and directors of the films and series 5heures.be discusses, looked up as
+    /// their pages are opened. Observed: a page shows its synopsis when it arrives.
+    private(set) var workDetails = WorkDetailsLibrary.load()
+    private var detailLookups: Set<String> = []
     /// The files `lookUpChapters(of:)` is reading.
     private var chapterChecks: Set<URL> = []
     private var lastFeedRefresh = Date.distantPast
@@ -554,6 +558,33 @@ final class AppModel {
             defer { chapterChecks.remove(episode.audioURL) }
             guard let found = try? await chapterReader.chapters(of: episode.audioURL) else { return }
             if chapters.record(found, for: episode) { chaptersRead() }
+        }
+    }
+
+    // MARK: Synopses
+
+    func details(of work: Work) -> WorkDetails? {
+        WorkDetails.key(for: work).flatMap(workDetails.details(for:))
+    }
+
+    /// Looks up a film's synopsis on its 5heures.be page, or a series' on TMDB (through the proxy), the
+    /// first time its page is opened. Dayez's films already have theirs.
+    func lookUpDetails(of work: Work) {
+        guard work.mentions.allSatisfy({ $0.segment.overview == nil }), let key = WorkDetails.key(for: work),
+              workDetails.needsLookup(key), !detailLookups.contains(key), let latest = work.mentions.first else { return }
+        detailLookups.insert(key)
+        let slug = work.mentions.lazy.compactMap(\.segment.slug).first
+        Task { [client, tmdb] in
+            defer { detailLookups.remove(key) }
+            let found: WorkDetails?
+            do {
+                if let slug { found = try await client.movieDetails(slug: slug) }
+                else { found = try await tmdb.seriesDetails(titled: latest.segment.displayTitle, discussedOn: latest.episode.date) }
+            } catch {
+                return                  // offline, or the proxy not allowing series yet: asked again next time
+            }
+            workDetails.record(found, for: key)
+            try? workDetails.save()
         }
     }
 
