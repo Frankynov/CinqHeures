@@ -346,6 +346,10 @@ private struct ChapterScrubber: View {
     @ViewState private var dragTime: Double?
     /// Where a touch drag began: the bar moves from the playhead, it doesn't jump to the finger.
     @ViewState private var dragStart: (time: Double, x: CGFloat)?
+    /// The film start a touch drag is held at: within `magnet` points of one, the playhead sticks to
+    /// it, so a finger lands on the start of a review rather than a few seconds into it or before it.
+    @ViewState private var heldStart: Double?
+    private static let magnet: CGFloat = 8
 
     /// A finger, not a pointer: a thicker bar and a taller hold, no thumb, relative drags.
     private var touch: Bool {
@@ -389,7 +393,9 @@ private struct ChapterScrubber: View {
         }
     }
 
-    private func chapter(at time: Double) -> Segment? { chapters.last { ($0.start ?? 0) <= time } }
+    /// With the half second the player allows too (`PlayerModel.tick`): a seek to a film's start lands
+    /// a hair before it, and the label named the film before.
+    private func chapter(at time: Double) -> Segment? { chapters.last { ($0.start ?? 0) <= time + 0.5 } }
 
     private var ready: Bool { player.phase == .ready && player.duration > 0 }
 
@@ -410,10 +416,11 @@ private struct ChapterScrubber: View {
             Capsule().fill(brandOrange).frame(width: ready ? x(time) : 0, height: bar)
             if ready {
                 ForEach(chapters) { chapter in
+                    let held = heldStart != nil && chapter.start == heldStart
                     Capsule()
-                        .fill(.primary.opacity(0.5))
-                        .frame(width: 2, height: mark)
-                        .offset(x: x(chapter.start ?? 0) - 1)
+                        .fill(held ? AnyShapeStyle(brandOrange) : AnyShapeStyle(.primary.opacity(0.5)))
+                        .frame(width: held ? 3 : 2, height: mark)
+                        .offset(x: x(chapter.start ?? 0) - (held ? 1.5 : 1))
                 }
                 if !touch {
                     Circle()
@@ -427,6 +434,9 @@ private struct ChapterScrubber: View {
         }
         .frame(width: width, height: trackHeight)
         .animation(.easeOut(duration: 0.12), value: active)
+        // One light tick each time the drag lands on a film's start: the subtlest of the system's
+        // feedbacks, the one pickers give.
+        .sensoryFeedback(.selection, trigger: heldStart) { _, held in held != nil }
         .contentShape(Rectangle())
         .onContinuousHover { phase in
             switch phase {
@@ -440,11 +450,19 @@ private struct ChapterScrubber: View {
             DragGesture(minimumDistance: touch ? 2 : 0)
                 .onChanged { value in
                     guard ready else { return }
-                    let t: Double
+                    var t: Double
                     if touch {
                         let start = dragStart ?? (time: player.currentTime, x: value.startLocation.x)
                         dragStart = start
                         t = min(max(start.time + Double((value.location.x - start.x) / width) * duration, 0), duration)
+                        let reach = Double(Self.magnet / width) * duration
+                        let nearest = chapters.compactMap(\.start).min { abs($0 - t) < abs($1 - t) }
+                        if let nearest, abs(nearest - t) <= reach {
+                            t = nearest
+                            heldStart = nearest
+                        } else {
+                            heldStart = nil
+                        }
                     } else {
                         t = Double(min(max(value.location.x / width, 0), 1)) * duration
                     }
@@ -455,6 +473,7 @@ private struct ChapterScrubber: View {
                     if let dragTime { player.seek(to: dragTime) }
                     dragTime = nil
                     dragStart = nil
+                    heldStart = nil
                     #if os(iOS)
                     // On a touch screen nothing "un-hovers": the bubble goes when the finger lifts.
                     hoverX = nil
