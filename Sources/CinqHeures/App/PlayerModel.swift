@@ -128,6 +128,7 @@ final class PlayerModel {
         loader.clear()
         episode = nil
         requestedSegment = nil
+        seekTarget = nil
         phase = .idle
         isPlaying = false
         currentTime = 0
@@ -157,6 +158,7 @@ final class PlayerModel {
         let current = generation
         player.pause()
         self.episode = episode
+        seekTarget = nil
         phase = .loading
         isPlaying = false
         currentTime = start
@@ -268,17 +270,29 @@ final class PlayerModel {
         guard phase == .ready else { return }
         let target = min(max(0, seconds), duration > 0 ? duration : seconds)
         currentTime = target
+        seekTarget = target
+        seeks += 1
+        let mine = seeks
         Task {
             await seekExactly(to: target)
+            // Only the last of several quick seeks lets the clock through again.
+            guard mine == seeks else { return }
+            seekTarget = nil
             tick(player.currentTime().seconds)
             updateNowPlaying()
         }
     }
 
+    /// Where a seek is headed until AVPlayer gets there. Its clock still gives the old place meanwhile,
+    /// and the playhead went back to it for a frame or two after a drag, then forward again.
+    private var seekTarget: Double?
+    private var seeks = 0
+
     // MARK: Following playback
 
-    private func tick(_ seconds: Double) {
-        guard seconds.isFinite else { return }
+    private func tick(_ reported: Double) {
+        guard reported.isFinite else { return }
+        let seconds = seekTarget ?? reported
         watchForStall()
         loader.playhead(seconds: seconds, duration: duration)
         currentTime = seconds
