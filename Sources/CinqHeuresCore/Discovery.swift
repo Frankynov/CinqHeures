@@ -20,6 +20,8 @@ public struct SeededGenerator: RandomNumberGenerator {
 public enum Listing: Hashable, Sendable {
     case latest, rediscover, series, people, repeats, codLive
     case stars(Int)
+    /// The films and series one show discussed, newest first: its page's poster grid.
+    case show(Series)
     /// Films reviewed without a score: Dayez's, and 5heures.be's before scores began (2011).
     case unrated
     /// A decade by its first year; 0 is everything before 1960.
@@ -36,6 +38,7 @@ public enum Listing: Hashable, Sendable {
         case .stars(let n): "Films notés \(n)/4"
         case .unrated: "Films sans note"
         case .decade(let d): Decade.title(d)
+        case .show(let series): series.fullTitle
         }
     }
 }
@@ -144,6 +147,8 @@ public struct Discovery: Sendable {
             chosen = unique(passages.filter { $0.segment.kind == .person })
         case .codLive:
             chosen = unique(films.filter { $0.episode.series == .codLive })
+        case .show(let series):
+            chosen = unique(passages.filter { $0.episode.series == series && $0.segment.kind != .person })
         case .repeats:
             var counts: [String: Int] = [:]
             for film in films { counts[film.segment.title, default: 0] += 1 }

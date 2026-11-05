@@ -103,25 +103,7 @@ struct ListingPage: View {
         }
         .toolbar {
             if sizeClass != .compact {
-                ToolbarItem {
-                    #if os(macOS)
-                    Picker("Affichage", selection: $layout) {
-                        Label("Grille", systemImage: "square.grid.2x2").tag(ListingLayout.grid)
-                        Label("Liste", systemImage: "list.bullet").tag(ListingLayout.list)
-                    }
-                    .pickerStyle(.segmented)
-                    .help("Afficher en grille d'affiches ou en liste")
-                    #else
-                    // One button showing the other view: a segmented picker drew its own capsule inside
-                    // the toolbar's glass one.
-                    Button {
-                        layout = layout == .grid ? .list : .grid
-                    } label: {
-                        layout == .grid ? Label("Liste", systemImage: "list.bullet")
-                                        : Label("Grille", systemImage: "square.grid.2x2")
-                    }
-                    #endif
-                }
+                ToolbarItem { LayoutSwitch(layout: $layout, list: "Afficher en grille d'affiches ou en liste") }
             }
             ToolbarItem {
                 Menu {
@@ -156,6 +138,32 @@ struct ListingPage: View {
 /// Posters in a grid, or the denser rows (always rows on iPhone).
 enum ListingLayout: String {
     case grid, list
+}
+
+/// Grid or list, in a page's toolbar (Mac and iPad; the iPhone always shows rows).
+struct LayoutSwitch: View {
+    @Binding var layout: ListingLayout
+    let list: String
+
+    var body: some View {
+        #if os(macOS)
+        Picker("Affichage", selection: $layout) {
+            Label("Grille", systemImage: "square.grid.2x2").tag(ListingLayout.grid)
+            Label("Liste", systemImage: "list.bullet").tag(ListingLayout.list)
+        }
+        .pickerStyle(.segmented)
+        .help(list)
+        #else
+        // One button showing the other view: a segmented picker drew its own capsule inside
+        // the toolbar's glass one.
+        Button {
+            layout = layout == .grid ? .list : .grid
+        } label: {
+            layout == .grid ? Label("Liste", systemImage: "list.bullet")
+                            : Label("Grille", systemImage: "square.grid.2x2")
+        }
+        #endif
+    }
 }
 
 /// How a listing's titles are ordered: newest passage first, or A to Z; reversed, the other way round.
@@ -201,19 +209,51 @@ enum ListingOrder: String, CaseIterable {
     }
 }
 
-/// A show's episodes, by year, each with a mosaic of its films.
+/// A show's episodes, by year, each with a mosaic of its films; on the Mac and the iPad, or its films'
+/// posters in a grid, as the rating pages show them.
 struct ShowPage: View {
     let series: Series?
     let model: AppModel
     @Environment(\.horizontalSizeClass) private var sizeClass
+    /// Its own setting: the episode list stays the show pages' first view whatever the rating pages show.
+    @AppStorage("showLayout") private var layout = ListingLayout.list
+    @ViewState private var isWide: Bool? = nil
+
+    /// A show whose episodes discuss films (not Rudy's music show, not Récents), on a screen wide enough.
+    private var offersGrid: Bool { sizeClass != .compact && series != nil && series != .quelquePart }
 
     var body: some View {
         let episodes = model.catalogue.episodes.filter { series == nil || $0.series == series }
+        if offersGrid, layout == .grid, let series {
+            let films = model.items(in: .show(series), by: .date)
+            ScrollView {
+                LazyVGrid(columns: isWide == false ? narrowGridColumns : gridColumns, spacing: 26) {
+                    ForEach(films) { item in ItemCard(item: item, model: model, width: nil) }
+                }
+                .pagePadding()
+            }
+            .onGeometryChange(for: Bool?.self) { $0.size.width > 0 ? $0.size.width >= 560 : nil } action: { isWide = $0 }
+            .pageEdges()
+            .navigationTitle(series.fullTitle)
+            .navigationSubtitle((series.host.map { "par \($0) · " } ?? "") + "\(films.count) titres")
+            .toolbar { layoutSwitch }
+        } else {
+            list(episodes)
+        }
+    }
+
+    @ToolbarContentBuilder private var layoutSwitch: some ToolbarContent {
+        if offersGrid {
+            ToolbarItem { LayoutSwitch(layout: $layout, list: "Afficher les affiches des films ou la liste des épisodes") }
+        }
+    }
+
+    private func list(_ episodes: [Episode]) -> some View {
         let groups = Dictionary(grouping: episodes, by: \.year).sorted { $0.key > $1.key }
         // A List (an AppKit table) recycles its rows, which keeps a 1,160-episode list smooth on the
         // first scroll; a lazy stack dropped 10% of frames there. It ignores the bottom room kept for
         // the floating player, though, so a clear row as tall as the player ends the list.
-        List {
+        return List {
             ForEach(groups, id: \.key) { year, episodes in
                 Section(String(year)) {
                     ForEach(episodes) { episode in
@@ -233,6 +273,7 @@ struct ShowPage: View {
         .pageEdges()
         .navigationTitle(series?.fullTitle ?? "Récents")
         .navigationSubtitle((series?.host.map { "par \($0) · " } ?? "") + "\(episodes.count) épisodes")
+        .toolbar { layoutSwitch }
     }
 }
 

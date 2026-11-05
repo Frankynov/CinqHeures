@@ -16,6 +16,9 @@ Notes for developers: how the app is built and how it reads each show. The main 
 - **Film pages**: a poster, its rating, and every passage about it (a film discussed several times
   lists each one, with show, date and the hosts' own wording), each with **Écouter** at the exact timecode.
 - **Ratings**: the sidebar's *Notes des films* lists films by their 0–4 score, and *Sans note* the ones reviewed without one.
+- **Show pages** list their episodes by year; on the Mac and iPad, the shows that discuss films (all but
+  *Il est toujours 5 heures quelque part*) switch to a grid of the posters they reviewed, newest first,
+  with the toolbar's Grille/Liste control (remembered for every show).
 - **Episode pages**: every film, series and person in an episode with its timecode; click to jump.
 - Player: one compact row of Liquid Glass floating over the bottom of the content (a material panel
   before macOS 26): artwork and title, play with ±15 s, a scrubber with a mark at each film of the
