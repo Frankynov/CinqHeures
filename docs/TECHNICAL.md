@@ -31,6 +31,18 @@ Notes for developers: how the app is built and how it reads each show. The main 
   a sidebar row (the Émissions tab on iPhone), a home shelf. Kept in UserDefaults by episode id
   (`Favorites`), last added first; neither reset clears them.
 
+- **Accessibility**: VoiceOver reads each card, row and passage as one element in words ("Song for
+  Marion, 4 étoiles sur 4, 2012, 4 Brins de muguet"; "4 minutes et 12 secondes" for "4:12"; dates in
+  full), with what a pointer or a tap does as actions (play a review, open an episode, add a favourite).
+  Section titles are headings. The scrubber is one adjustable element, "Position de lecture": swiping
+  up or down goes to the next or previous film's start (a minute at a time in an episode without
+  marks). The now-playing block is a button that opens the episode (the full player on iPhone), and a
+  failed file or a slow server is announced. Posters are hidden from VoiceOver, the player is read after
+  the page. With the largest text sizes the episode page stacks its buttons and rows take more lines;
+  the floating bar and the iPhone's mini player stop growing at the largest standard size (the full
+  player doesn't). With "Increase contrast" the orange darkens on light backgrounds, lightens on dark.
+  The spoken forms are in `Sources/CinqHeures/UI/Spoken.swift`.
+
 **5heures › Réinitialiser… (cache : …)** opens a sheet with two checkboxes, in any combination: the
 **cache** (catalogue and posters; the app then re-downloads like a first launch) and the **listening
 progress** (resume positions and *Continuer l'écoute*).

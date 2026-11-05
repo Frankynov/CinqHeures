@@ -32,6 +32,10 @@ struct PlayerBar: View {
         // as wide, and so never took its narrow form.
         .frame(minWidth: 0, maxWidth: 1240)
         .onGeometryChange(for: Bool.self) { $0.size.width < 760 } action: { isNarrow = $0 }
+        .modifier(PlaybackAnnouncements(player: player))
+        // The bar keeps its height over the pages: past this size its title and times were cut off.
+        // The full player on iPhone takes any size.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 
     /// Two rows on an iPhone or an iPad in portrait.
@@ -83,18 +87,21 @@ struct PlayerBar: View {
     private var nowPlayingButton: some View {
         nowPlaying
             .contentShape(Rectangle())
-            .onTapGesture {
-                guard player.episode != nil else { return }
-                // iPhone: the full-screen player; elsewhere straight to the episode's page.
-                if isPhone { showsFullPlayer = true } else { open() }
-            }
+            .onTapGesture(perform: openNowPlaying)
             .help(player.episode == nil ? "" : "Ouvrir l'épisode")
+            .modifier(NowPlayingAccessibility(player: player, opensPlayer: isPhone, open: openNowPlaying))
             #if os(iOS)
             .sheet(isPresented: $showsFullPlayer) {
                 FullPlayer(player: player, favorites: favorites, openEpisode: { showsFullPlayer = false; open() })
                     .presentationDragIndicator(.visible)
             }
             #endif
+    }
+
+    private func openNowPlaying() {
+        guard player.episode != nil else { return }
+        // iPhone: the full-screen player; elsewhere straight to the episode's page.
+        if isPhone { showsFullPlayer = true } else { open() }
     }
 
     @ViewState private var showsFullPlayer = false
@@ -112,7 +119,8 @@ struct PlayerBar: View {
             Button { player.skip(by: -PlayerModel.jump) } label: {
                 Image(systemName: "gobackward.15").font(.system(size: 17, weight: .medium))
             }
-            .help("Reculer de 15 secondes")
+            .tooltip("Reculer de 15 secondes")
+            .accessibilityLabel("Reculer de 15 secondes")
             Button { player.togglePlayPause() } label: {
                 Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: 15, weight: .bold))
@@ -128,11 +136,13 @@ struct PlayerBar: View {
                     .opacity(player.phase == .ready ? 1 : 0.45)
             }
             .keyboardShortcut(.space, modifiers: [])
-            .help(player.isPlaying ? "Pause" : "Lecture")
+            .tooltip(player.isPlaying ? "Pause" : "Lecture")
+            .accessibilityLabel(player.isPlaying ? "Pause" : "Lecture")
             Button { player.skip(by: PlayerModel.jump) } label: {
                 Image(systemName: "goforward.15").font(.system(size: 17, weight: .medium))
             }
-            .help("Avancer de 15 secondes")
+            .tooltip("Avancer de 15 secondes")
+            .accessibilityLabel("Avancer de 15 secondes")
         }
         .buttonStyle(.plain)
         .foregroundStyle(.primary)
@@ -145,10 +155,13 @@ struct PlayerBar: View {
                     Image(systemName: volumeSymbol)
                         .frame(width: 18)
                         .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
                     Slider(value: Binding(get: { Double(player.volume) }, set: { player.volume = Float($0) }), in: 0...1)
                         .controlSize(.mini)
                         .frame(width: 80)
-                        .help("Volume")
+                        .tooltip("Volume")
+                        .accessibilityLabel("Volume")
+                        .accessibilityValue("\(Int((player.volume * 100).rounded())) %")
                 }
             }
             if let episode = player.episode {
@@ -164,13 +177,16 @@ struct PlayerBar: View {
                         Text(speedLabel(speed))
                         if speed == player.rate { Image(systemName: "checkmark") }
                     }
+                    .accessibilityLabel(Spoken.speed(speed))
                 }
             } label: {
                 Text(speedLabel(player.rate)).monospacedDigit().font(.callout.weight(.semibold))
             }
             .borderlessMenu()
             .fixedSize()
-            .help("Vitesse de lecture")
+            .tooltip("Vitesse de lecture")
+            .accessibilityLabel("Vitesse de lecture")
+            .accessibilityValue(Spoken.speed(player.rate))
         }
     }
 
@@ -225,10 +241,63 @@ struct PlayerBar: View {
             }
         } else {
             HStack(spacing: 8) {
-                Image(systemName: "headphones").foregroundStyle(.secondary)
+                Image(systemName: "headphones").foregroundStyle(.secondary).accessibilityHidden(true)
                 Text("Rien en lecture").font(.callout).foregroundStyle(.secondary)
             }
         }
+    }
+}
+
+/// The now-playing block as VoiceOver reads it: one button, "En lecture : Pfau, 3 étoiles sur 4,
+/// Podcast, vendredi 27 juin 2025", that opens the episode (the full player on iPhone). While a file
+/// fails or the server is slow, its parts stay apart so "Réessayer" and "Pourquoi ?" can be reached.
+struct NowPlayingAccessibility: ViewModifier {
+    let player: PlayerModel
+    let opensPlayer: Bool
+    let open: () -> Void
+
+    func body(content: Content) -> some View {
+        let failed = if case .failed = player.phase { true } else { false }
+        if player.episode != nil, !failed, !player.serverIsSlow {
+            content
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Spoken.nowPlaying(player))
+                .accessibilityHint(opensPlayer ? "Ouvre le lecteur" : "Ouvre la page de l'épisode")
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction { open() }
+        } else {
+            content.accessibilityElement(children: .contain)
+        }
+    }
+}
+
+extension Spoken {
+    @MainActor static func nowPlaying(_ player: PlayerModel) -> String {
+        guard let episode = player.episode else { return "Rien en lecture" }
+        let segment = player.currentSegment ?? player.requestedSegment
+        let state = switch player.phase {
+        case .loading: "Chargement"
+        case .failed: "Lecture impossible"
+        default: player.serverIsSlow ? "Préparation du passage" : player.isPlaying ? "En lecture" : "En pause"
+        }
+        return state + " : " + join([segment?.displayTitle ?? episode.title, segment?.stars.map(stars),
+                                     episode.series.title, date(episode.date)])
+    }
+}
+
+/// Says when playback fails or the server makes the listener wait: nothing else on screen tells
+/// VoiceOver users why nothing plays.
+struct PlaybackAnnouncements: ViewModifier {
+    let player: PlayerModel
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: player.phase) { _, phase in
+                if case .failed = phase { AccessibilityNotification.Announcement("Lecture impossible").post() }
+            }
+            .onChange(of: player.serverIsSlow) { _, slow in
+                if slow { AccessibilityNotification.Announcement("Le serveur de 5heures.be est lent, préparation du passage").post() }
+            }
     }
 }
 
@@ -248,7 +317,7 @@ private struct InfoLine: View {
                         .font(.caption)
                         .foregroundStyle(brandOrange)
                         .fixedSize()
-                        .accessibilityLabel("\(stars) étoile\(stars > 1 ? "s" : "") sur 4")
+                        .accessibilityLabel(Spoken.stars(stars))
                 }
                 showAndDate
                 badge
@@ -362,6 +431,46 @@ private struct ChapterScrubber: View {
     private var trackHeight: CGFloat { touch ? 30 : 18 }
 
     var body: some View {
+        content
+            // One adjustable element for VoiceOver: "Position de lecture, 4 minutes et 12 secondes sur
+            // 39 minutes, Pfau". Swiping up or down goes to the next or previous film's start, the
+            // marks on the bar; without marks, a minute at a time.
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Position de lecture")
+            .accessibilityValue(spokenPosition)
+            .accessibilityAdjustableAction(step)
+            .accessibilityHidden(player.episode == nil)
+    }
+
+    private var spokenPosition: String {
+        guard ready else { return player.phase == .loading ? "Chargement" : "Indisponible" }
+        let time = player.currentTime
+        return Spoken.join(["\(Spoken.duration(time)) sur \(Spoken.duration(player.duration))", chapter(at: time)?.displayTitle])
+    }
+
+    private func step(_ direction: AccessibilityAdjustmentDirection) {
+        guard ready else { return }
+        let time = player.currentTime
+        let starts = chapters.compactMap(\.start).sorted()
+        switch direction {
+        case .increment:
+            player.seek(to: starts.first { $0 > time + 1 } ?? min(time + 60, max(0, player.duration - 1)))
+        case .decrement:
+            let current = starts.last { $0 <= time + 0.5 }
+            if let current, time - current > 3 {
+                // A few seconds into a film: back to its start, like a previous-track button.
+                player.seek(to: current)
+            } else if let previous = starts.last(where: { $0 < (current ?? time) - 0.5 }) {
+                player.seek(to: previous)
+            } else {
+                player.seek(to: starts.isEmpty ? max(0, time - 60) : 0)
+            }
+        @unknown default:
+            break
+        }
+    }
+
+    @ViewBuilder private var content: some View {
         let time = dragTime ?? player.currentTime
         if timesBelow {
             VStack(spacing: 4) {
@@ -662,6 +771,7 @@ struct FullPlayer: View {
                     Button { player.skip(by: -PlayerModel.jump) } label: {
                         Image(systemName: "gobackward.15").font(.system(size: 30, weight: .medium))
                     }
+                    .accessibilityLabel("Reculer de 15 secondes")
                     Button { player.togglePlayPause() } label: {
                         Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
                             .font(.system(size: 32, weight: .bold))
@@ -675,9 +785,11 @@ struct FullPlayer: View {
                             )
                             .shadow(color: brandOrange.opacity(0.4), radius: 8, y: 4)
                     }
+                    .accessibilityLabel(player.isPlaying ? "Pause" : "Lecture")
                     Button { player.skip(by: PlayerModel.jump) } label: {
                         Image(systemName: "goforward.15").font(.system(size: 30, weight: .medium))
                     }
+                    .accessibilityLabel("Avancer de 15 secondes")
                 }
                 .buttonStyle(.plain)
                 .disabled(player.phase != .ready)
@@ -691,6 +803,7 @@ struct FullPlayer: View {
                                 Text(speedText(speed))
                                 if speed == player.rate { Image(systemName: "checkmark") }
                             }
+                            .accessibilityLabel(Spoken.speed(speed))
                         }
                     } label: {
                         Text(speedText(player.rate))
@@ -698,6 +811,7 @@ struct FullPlayer: View {
                             .frame(minWidth: 44, minHeight: 34)
                     }
                     .accessibilityLabel("Vitesse de lecture")
+                    .accessibilityValue(Spoken.speed(player.rate))
                     .frame(maxWidth: .infinity)
                     if let episode {
                         FavoriteButton(episode: episode, favorites: favorites, size: 22)
@@ -759,7 +873,7 @@ private struct ScoreLine: View {
     }
 
     private func spoken(stars: Int, verdict: String?) -> String {
-        let score = "\(stars) étoile\(stars > 1 ? "s" : "") sur 4"
+        let score = Spoken.stars(stars)
         guard let verdict else { return score }
         return score + ", " + verdict
     }

@@ -87,7 +87,7 @@ private struct PhoneShowsList: View {
                             SidebarNumber(number: stars, color: stars >= 3 ? brandOrange : .gray)
                         }
                         .badge(model.count(ofStars: stars))
-                        .accessibilityLabel("\(stars) étoile\(stars > 1 ? "s" : "") sur 4")
+                        .accessibilityLabel(Spoken.stars(stars))
                     }
                 }
                 NavigationLink(value: Route.listing(.unrated)) {
@@ -116,6 +116,7 @@ private struct MiniPlayer: View {
         let episode = player.episode
         let segment = player.currentSegment ?? player.requestedSegment
         HStack(spacing: 12) {
+            HStack(spacing: 12) {
             Group {
                 if let url = segment?.posterURL {
                     Poster(url: url, width: 26)
@@ -123,6 +124,7 @@ private struct MiniPlayer: View {
                     Artwork(url: episode.artwork, side: 34)
                 } else {
                     Image(systemName: "headphones").font(.title3).foregroundStyle(.secondary).frame(width: 34)
+                        .accessibilityHidden(true)
                 }
             }
             VStack(alignment: .leading, spacing: 1) {
@@ -136,6 +138,9 @@ private struct MiniPlayer: View {
                 }
             }
             .lineLimit(1)
+            }
+            // What's playing as one button that opens the full player, as a tap on the bar does.
+            .modifier(NowPlayingAccessibility(player: player, opensPlayer: true) { if episode != nil { showsFullPlayer = true } })
             Spacer(minLength: 4)
             if episode != nil {
                 Button { player.togglePlayPause() } label: {
@@ -145,11 +150,13 @@ private struct MiniPlayer: View {
                         .frame(width: 36, height: 36)
                 }
                 .disabled(player.phase != .ready)
+                .accessibilityLabel(player.isPlaying ? "Pause" : "Lecture")
                 if placement != .inline {
                     Button { player.skip(by: PlayerModel.jump) } label: {
                         Image(systemName: "goforward.15").font(.title3).frame(width: 36, height: 36)
                     }
                     .disabled(player.phase != .ready)
+                    .accessibilityLabel("Avancer de 15 secondes")
                 }
             }
         }
@@ -162,6 +169,10 @@ private struct MiniPlayer: View {
             FullPlayer(player: player, favorites: favorites, openEpisode: { showsFullPlayer = false; openEpisode() })
                 .presentationDragIndicator(.visible)
         }
+        .modifier(PlaybackAnnouncements(player: player))
+        // The accessory's height is the system's: past this size the title and show were cut off.
+        // A tap opens the full player, which takes any size.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 
     private func status(_ episode: Episode) -> String {

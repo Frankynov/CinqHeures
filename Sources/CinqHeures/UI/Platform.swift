@@ -74,6 +74,10 @@ extension View {
 }
 
 extension View {
+    /// A pointer tooltip that VoiceOver doesn't repeat. `help` is also read out as the hint, which,
+    /// when it's the control's own name, said it twice ("Ajouter aux favoris… Ajouter aux favoris").
+    func tooltip(_ text: String) -> some View { help(text).accessibilityHint(Text(verbatim: "")) }
+
     /// A page's margins: 28 points on the Mac and the iPad, 16 on an iPhone.
     func pagePadding(_ edges: Edge.Set = .all) -> some View { modifier(PagePadding(edges: edges)) }
 }
@@ -99,7 +103,7 @@ struct AirPlayButton: View {
     var body: some View {
         picker
             .frame(width: size, height: size)
-            .help("AirPlay")
+            .tooltip("AirPlay")
             .accessibilityLabel("AirPlay")
     }
 

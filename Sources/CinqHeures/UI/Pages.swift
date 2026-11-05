@@ -322,6 +322,9 @@ struct FavoritesPage: View {
 struct EpisodeRow: View {
     let episode: Episode
     var showSeries = true
+    @Environment(\.dynamicTypeSize) private var typeSize
+    /// More lines with the largest text sizes, where two held a few words.
+    private var lines: Int { typeSize.isAccessibilitySize ? 5 : 2 }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -330,17 +333,19 @@ struct EpisodeRow: View {
                 HStack {
                     Text(episode.name ?? EpisodeDates.long.string(from: episode.date))
                         .font(.headline)
-                        .lineLimit(2)
+                        .lineLimit(lines)
                     Spacer()
                     if showSeries { SeriesBadge(series: episode.series) }
                 }
                 Text(detail)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .lineLimit(2)
+                    .lineLimit(lines)
             }
         }
         .padding(.vertical, 3)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Spoken.episode(episode, showSeries: showSeries))
     }
 
     /// The films and series for a review show; date and length for a plain recording.
@@ -383,6 +388,7 @@ struct SearchPage: View {
                         if !results.described.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Dans le titre ou le résumé d'un épisode").font(.title3.weight(.bold))
+                                    .accessibilityAddTraits(.isHeader)
                                 ForEach(results.described.prefix(40)) { episode in
                                     NavigationLink(value: Route.episode(episode.id, highlight: nil)) {
                                         EpisodeRow(episode: episode)
@@ -408,6 +414,8 @@ struct SearchPage: View {
         if !matching.isEmpty {
             VStack(alignment: .leading, spacing: 14) {
                 Text("\(title) · \(matching.count)").font(.title3.weight(.bold))
+                    .accessibilityLabel("\(title), \(matching.count)")
+                    .accessibilityAddTraits(.isHeader)
                 if sizeClass == .compact {
                     LazyVStack(alignment: .leading, spacing: 10) {
                         ForEach(matching.prefix(Self.limit)) { work in

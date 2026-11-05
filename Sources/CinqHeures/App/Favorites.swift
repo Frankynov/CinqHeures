@@ -40,7 +40,7 @@ struct FavoriteButton: View {
                 .foregroundStyle(isFavorite ? AnyShapeStyle(Color.pink) : idle)
                 .contentTransition(.symbolEffect(.replace))
         }
-        .help(isFavorite ? "Retirer des favoris" : "Ajouter aux favoris")
+        .tooltip(isFavorite ? "Retirer des favoris" : "Ajouter aux favoris")
     }
 
     private var idle: AnyShapeStyle {

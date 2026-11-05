@@ -56,6 +56,7 @@ struct HomeView: View {
 /// own grey style whatever their tint, so the item opts out of that background and draws its own.
 private struct ShuffleToolbarItem: ToolbarContent {
     let model: AppModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some ToolbarContent {
         if #available(macOS 26, *) {
@@ -72,7 +73,7 @@ private struct ShuffleToolbarItem: ToolbarContent {
             HStack(spacing: 6) {
                 // A goat (a joke from the show) that hops on each click.
                 GoatIcon(size: 15)
-                    .phaseAnimator([0.0, -5, 0], trigger: model.shuffleSeed) { goat, lift in
+                    .phaseAnimator(reduceMotion ? [0.0] : [0.0, -5, 0], trigger: model.shuffleSeed) { goat, lift in
                         goat.offset(y: lift)
                     } animation: { _ in .easeOut(duration: 0.12) }
                 Text("Surprenez-moi")
@@ -124,6 +125,7 @@ struct HeroView: View {
                 }
             }
             .overlay(LinearGradient(colors: [.black.opacity(0.72), .black.opacity(0.35)], startPoint: .leading, endPoint: .trailing))
+            .accessibilityHidden(true)
         }
         .task(id: mention.segment.id) { model.warm(mention.episode, at: mention.segment) }
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
@@ -140,6 +142,8 @@ struct HeroView: View {
                     .shadow(color: .black.opacity(0.5), radius: 12, y: 6)
             }
             VStack(alignment: .leading, spacing: 9) {
+                // Read as one: "À la une, une critique au hasard : Tous les chats sont gris, 2014, 3 étoiles sur 4…"
+                VStack(alignment: .leading, spacing: 9) {
                 Text("À LA UNE · UNE CRITIQUE AU HASARD")
                     .font(.caption.weight(.semibold)).tracking(1.4)
                     .lineLimit(1).minimumScaleFactor(0.8)
@@ -156,9 +160,15 @@ struct HeroView: View {
                     if let verdict = segment.spokenVerdict { Text("· \(verdict)").lineLimit(1) }
                 }
                 .font(.callout).foregroundStyle(.white.opacity(0.85))
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("À la une, une critique au hasard : " + Spoken.join([
+                    Spoken.film(segment), mention.episode.series.title, Spoken.date(mention.episode.date)]))
+                .accessibilityAddTraits(.isHeader)
                 Text("\(EpisodeDates.long.string(from: mention.episode.date)) · \(mention.episode.series.title)")
                     .font(.callout).foregroundStyle(.white.opacity(0.65))
                     .lineLimit(2)
+                    .accessibilityHidden(true)
                 buttons(compact: compactButtons, shortPlay: phone)
                     .padding(.top, 6)
             }
@@ -175,12 +185,12 @@ struct HeroView: View {
             }
             .buttonStyle(.borderedProminent).tint(brandOrange).controlSize(.large)
             Button { model.open(.work(segment.kind, segment.title)) } label: {
-                Label("Voir le film", systemImage: "info.circle")
+                Label(segment.kind == .movie ? "Voir le film" : "Voir la page", systemImage: "info.circle")
                     .labelStyle(compact ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.titleAndIcon))
                     .fixedSize()
             }
             .buttonStyle(.bordered).controlSize(.large).tint(.white)
-            .help("Voir le film")
+            .tooltip(segment.kind == .movie ? "Voir le film" : "Voir la page")
             Button {
                 withAnimation(.easeInOut(duration: 0.25)) { model.anotherHero() }
             } label: {
@@ -189,7 +199,8 @@ struct HeroView: View {
                     .fixedSize()
             }
             .buttonStyle(.bordered).controlSize(.large).tint(.white)
-            .help("Une autre critique au hasard")
+            .tooltip("Une autre critique au hasard")
+            .accessibilityLabel("Une autre critique au hasard")
         }
         .fixedSize()
     }
@@ -219,12 +230,15 @@ struct ShelfRow: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(title).font(.title2.weight(.bold))
+                        .accessibilityLabel(Spoken.text(title))
+                        .accessibilityAddTraits(.isHeader)
                     Spacer()
                     if let seeAll {
                         Button { model.open(seeAll) } label: {
                             Text("Tout voir").font(.callout.weight(.semibold))
                         }
                         .buttonStyle(.plain).foregroundStyle(brandOrange)
+                        .accessibilityLabel("Tout voir : \(Spoken.text(title))")
                     }
                 }
                 .padding(.horizontal, pageMargin)
@@ -261,6 +275,8 @@ struct ShelfRow: View {
         .buttonStyle(.plain)
         .padding(.horizontal, 12)
         .padding(.bottom, 56)
+        // Pointer-only: VoiceOver moves through the shelf's cards itself.
+        .accessibilityHidden(true)
     }
 }
 
@@ -286,11 +302,13 @@ struct DecadeRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Explorer par époque").font(.title2.weight(.bold)).padding(.horizontal, pageMargin)
+                .accessibilityAddTraits(.isHeader)
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: 18) {
                     ForEach(Array(tiles.enumerated()), id: \.element.id) { index, tile in
                         DecadeTileView(tile: tile, colors: Self.palette[index % Self.palette.count])
                             .onTapGesture { model.open(.listing(.decade(tile.decade))) }
+                            .accessibilityAction { model.open(.listing(.decade(tile.decade))) }
                     }
                 }
                 .padding(.horizontal, pageMargin).padding(.vertical, 6)
@@ -332,6 +350,8 @@ private struct DecadeTileView: View {
         .animation(.easeOut(duration: 0.12), value: hovering)
         .onHover { hovering = $0 }
         .contentShape(Rectangle())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(tile.title), \(tile.count) films")
         .accessibilityAddTraits(.isButton)
     }
 }

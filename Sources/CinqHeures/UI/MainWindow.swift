@@ -49,6 +49,8 @@ struct MainWindow: View {
         PlayerBar(player: model.player, favorites: model.favorites, open: { model.openCurrentEpisode() })
             .padding(.horizontal, 16)
             .padding(.bottom, 12)
+            // VoiceOver reads the page first and the player after it, where it sits on screen.
+            .accessibilitySortPriority(-1)
     }
 
     private var columns: some View {
@@ -183,7 +185,7 @@ struct SidebarView: View {
                         SidebarNumber(number: stars, color: stars >= 3 ? brandOrange : .gray)
                     }
                     .badge(model.count(ofStars: stars))
-                    .accessibilityLabel("\(stars) étoile\(stars > 1 ? "s" : "") sur 4")
+                    .accessibilityLabel(Spoken.stars(stars))
                     .tag(SidebarItem.score(stars))
                 }
                 Label {
@@ -216,6 +218,7 @@ struct SyncStatus: View {
             if let date = model.catalogue.updatedAt {
                 Text("À jour au \(EpisodeDates.short.string(from: date))")
                     .font(.caption).foregroundStyle(.secondary).padding(8)
+                    .accessibilityLabel("Catalogue à jour au \(Spoken.date(date))")
             }
         case .running(let done, let total):
             VStack(alignment: .leading, spacing: 4) {

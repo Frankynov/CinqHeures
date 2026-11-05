@@ -48,6 +48,7 @@ struct WorkPage: View {
 
                     VStack(alignment: .leading, spacing: 12) {
                         Text(work.mentions.count > 1 ? "Les passages" : "Le passage").font(.title2.weight(.bold))
+                            .accessibilityAddTraits(.isHeader)
                         ForEach(work.mentions) { mention in PassageRow(mention: mention, model: model, compact: compact) }
                     }
                 }
@@ -79,6 +80,7 @@ struct WorkPage: View {
             Text(segment.displayTitle)
                 .font(compact ? .title.weight(.bold) : .largeTitle.weight(.bold))
                 .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
             if let local, local != segment.displayTitle {
                 Text(local).font(compact ? .callout : .title3).foregroundStyle(.secondary)
             }
@@ -86,11 +88,13 @@ struct WorkPage: View {
             let facts = [kind.label, segment.year.map(String.init), director.map { "de \($0)" },
                          "\(work.mentions.count) passage\(work.mentions.count > 1 ? "s" : "")"].compactMap { $0 }
             Text(facts.joined(separator: " · "))
+                .accessibilityLabel(Spoken.join(facts))
                 .font(compact ? .callout : .body)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             if let best = work.mentions.compactMap(\.segment.stars).max() {
                 Text(Segment.starString(best)).font(.title3).foregroundStyle(brandOrange)
+                    .accessibilityLabel(Spoken.stars(best))
             }
         }
     }
@@ -173,5 +177,17 @@ private struct PassageRow: View {
         }
         .padding(compact ? 10 : 12)
         .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        // One element: "Podcast, vendredi 27 juin 2025, à 4 minutes et 12 secondes, 3 étoiles sur 4".
+        // Activating it plays the passage; the episode's page is an action.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Spoken.join([mention.episode.series.title, Spoken.date(mention.episode.date),
+                                         segment.start.map { "à \(Spoken.duration($0))" } ?? "épisode entier",
+                                         segment.stars.map(Spoken.stars), segment.spokenVerdict]))
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint("Écoute ce passage")
+        .accessibilityAction { model.play(mention.episode, from: segment) }
+        .accessibilityActions {
+            Button("Ouvrir l'épisode") { model.open(.episode(mention.episode.id, highlight: segment.id)) }
+        }
     }
 }

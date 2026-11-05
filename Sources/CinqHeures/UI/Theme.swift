@@ -98,6 +98,8 @@ struct SeriesBadge: View {
             .foregroundStyle(.white)
             .background(series.tint, in: Capsule())
             .fixedSize()
+            // "5 heures du soir", not "5H du soir".
+            .accessibilityLabel(series.title)
     }
 }
 
@@ -125,6 +127,7 @@ struct Poster: View {
         }
         .frame(width: width, height: width * 1.5)
         .clipShape(RoundedRectangle(cornerRadius: 3))
+        .accessibilityHidden(true)
         .task(id: url) {
             guard let url else { image = nil; return }
             let pixels = Self.pixels(width)
@@ -159,6 +162,7 @@ struct Artwork: View {
         }
         .frame(width: side, height: side)
         .clipShape(RoundedRectangle(cornerRadius: side * 0.12))
+        .accessibilityHidden(true)
         .task(id: url) {
             guard let url else { image = nil; return }
             image = await PosterCache.shared.image(for: url, pixels: Self.pixels(side))

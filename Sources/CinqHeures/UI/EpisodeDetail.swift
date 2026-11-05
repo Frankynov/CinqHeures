@@ -28,6 +28,7 @@ private struct EpisodeContent: View {
     let episode: Episode
     let model: AppModel
     let highlighted: Int?
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         let player = model.player
@@ -51,23 +52,29 @@ private struct EpisodeContent: View {
                                         .foregroundStyle(.secondary)
                                     if let duration = episode.duration {
                                         Text(clock(duration)).foregroundStyle(.secondary).monospacedDigit()
+                                            .accessibilityLabel(Spoken.duration(duration))
                                     }
                                 }
                             }
                         }
-                        HStack {
-                            SeriesBadge(series: episode.series)
-                            Spacer()
-                            FavoriteButton(episode: episode, favorites: model.favorites)
-                                .buttonStyle(.bordered)
-                                .tint(.pink)
-                            Button {
-                                model.play(episode)
-                            } label: {
-                                Label(isCurrent ? "Reprendre" : player.hasProgress(episode) ? "Reprendre l'épisode" : "Écouter l'épisode",
-                                      systemImage: "play.fill")
+                        // With the largest text sizes the buttons go under the badge, the play button across
+                        // the page: beside it, its words broke over four lines in a circle.
+                        if typeSize.isAccessibilitySize {
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    SeriesBadge(series: episode.series)
+                                    Spacer()
+                                    favoriteButton
+                                }
+                                playButton(isCurrent: isCurrent, fullWidth: true)
                             }
-                            .buttonStyle(.borderedProminent).tint(brandOrange)
+                        } else {
+                            HStack {
+                                SeriesBadge(series: episode.series)
+                                Spacer()
+                                favoriteButton
+                                playButton(isCurrent: isCurrent, fullWidth: false)
+                            }
                         }
                         if !episode.summary.isEmpty {
                             Text(episode.summary)
@@ -82,6 +89,8 @@ private struct EpisodeContent: View {
                         VStack(alignment: .leading, spacing: 0) {
                             Text("Au programme · \(episode.subjects.count)")
                                 .font(.title3.weight(.bold))
+                                .accessibilityLabel("Au programme, \(episode.subjects.count) titre\(episode.subjects.count > 1 ? "s" : "")")
+                                .accessibilityAddTraits(.isHeader)
                                 .padding(.bottom, 10)
                             ForEach(Array(episode.segments.enumerated()), id: \.element.id) { index, segment in
                                 if index > 0 { Divider().padding(.leading, episode.segments.contains { $0.start != nil } ? 98 : 46) }
@@ -104,6 +113,24 @@ private struct EpisodeContent: View {
             .onChange(of: highlighted) { scroll(proxy) }
             .onChange(of: episode.id) { scroll(proxy) }
         }
+    }
+
+    private var favoriteButton: some View {
+        FavoriteButton(episode: episode, favorites: model.favorites)
+            .buttonStyle(.bordered)
+            .tint(.pink)
+    }
+
+    private func playButton(isCurrent: Bool, fullWidth: Bool) -> some View {
+        let player = model.player
+        return Button {
+            model.play(episode)
+        } label: {
+            Label(isCurrent ? "Reprendre" : player.hasProgress(episode) ? "Reprendre l'épisode" : "Écouter l'épisode",
+                  systemImage: "play.fill")
+                .frame(maxWidth: fullWidth ? .infinity : nil)
+        }
+        .buttonStyle(.borderedProminent).tint(brandOrange)
     }
 
     private func scroll(_ proxy: ScrollViewProxy) {
@@ -181,5 +208,25 @@ private struct SegmentRow: View {
             }
         }
         .padding(.vertical, 2)
+        // One element a row: "4 minutes et 12 secondes, Pfau, 3 étoiles sur 4, 3 bonnes doses". It opens
+        // the title's page (an aside plays instead); playing from its time is an action.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(spoken(timed: timed))
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint(isSubject ? "" : "Écoute à partir d'ici")
+        .accessibilityAction {
+            if isSubject { model.open(.work(segment.kind, segment.title)) } else { model.play(episode, from: segment) }
+        }
+        .accessibilityActions {
+            if timed, isSubject {
+                Button("Écouter à partir de \(Spoken.duration(segment.start ?? 0))") { model.play(episode, from: segment) }
+            }
+        }
+    }
+
+    private func spoken(timed: Bool) -> String {
+        let kind = segment.kind.isSubject && segment.kind != .movie ? segment.kind.label : nil
+        return Spoken.join([timed ? segment.start.map(Spoken.duration) : nil, segment.title, kind,
+                            segment.stars.map(Spoken.stars), segment.spokenVerdict, isPlaying ? "en cours" : nil])
     }
 }

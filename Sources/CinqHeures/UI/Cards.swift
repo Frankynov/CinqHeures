@@ -1,8 +1,24 @@
 import CinqHeuresCore
 import SwiftUI
 
-/// The accent used for "Tout voir", the chevrons and the stars: the Podcast orange.
-let brandOrange = Color(red: 0.93, green: 0.55, blue: 0.05)
+/// The accent used for "Tout voir", the chevrons and the stars: the Podcast orange. With "Increase
+/// contrast" on, a darker orange on light backgrounds and a lighter one on dark, so orange text and
+/// stars stand out from the page.
+let brandOrange: Color = {
+    let normal = (0.93, 0.55, 0.05), onLight = (0.70, 0.33, 0.0), onDark = (1.0, 0.68, 0.30)
+    #if os(macOS)
+    return Color(nsColor: NSColor(name: nil) { appearance in
+        let match = appearance.bestMatch(from: [.aqua, .darkAqua, .accessibilityHighContrastAqua, .accessibilityHighContrastDarkAqua])
+        let c = match == .accessibilityHighContrastAqua ? onLight : match == .accessibilityHighContrastDarkAqua ? onDark : normal
+        return NSColor(srgbRed: c.0, green: c.1, blue: c.2, alpha: 1)
+    })
+    #else
+    return Color(uiColor: UIColor { traits in
+        let c = traits.accessibilityContrast != .high ? normal : traits.userInterfaceStyle == .dark ? onDark : onLight
+        return UIColor(red: c.0, green: c.1, blue: c.2, alpha: 1)
+    })
+    #endif
+}()
 
 extension View {
     /// What every page needs at its edges, applied on each page (a page pushed onto the navigation
@@ -59,6 +75,8 @@ struct PosterImage: View {
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
+            // Decorative: the title is always next to it, and VoiceOver can't describe a poster.
+            .accessibilityHidden(true)
     }
 }
 
@@ -94,6 +112,7 @@ struct EpisodeArt: View {
             }
         }
         .frame(width: side, height: side)
+        .accessibilityHidden(true)
     }
 
     @ViewBuilder private var mosaic: some View {
@@ -175,8 +194,15 @@ struct FilmCard: View {
         .onHover { hovering = $0 }
         .contentShape(Rectangle())
         .onTapGesture { model.open(.work(segment.kind, segment.title)) }
-        .accessibilityElement(children: .combine)
+        // One element: "Song for Marion, 4 étoiles sur 4, 2012, 4 Brins de muguet". Activating it opens
+        // the film, as a click does; the play button that hovering shows is an action.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Spoken.film(segment, passages: passages))
         .accessibilityAddTraits(.isButton)
+        .accessibilityAction { model.open(.work(segment.kind, segment.title)) }
+        .accessibilityAction(named: segment.start == nil ? "Écouter" : "Écouter la critique") {
+            model.play(mention.episode, from: mention.segment)
+        }
     }
 
     private var subtitle: String { filmSubtitle(mention.segment, passages: passages) }
@@ -201,6 +227,7 @@ private func filmSubtitle(_ segment: Segment, passages: Int) -> String {
 struct FilmRow: View {
     let mention: Work.Mention
     var passages = 1
+    @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.wideRows) private var wideRows
 
@@ -211,7 +238,7 @@ struct FilmRow: View {
         HStack(spacing: 12) {
             Poster(url: segment.posterURL, width: wide ? 28 : 42)
             VStack(alignment: .leading, spacing: 2) {
-                Text(segment.displayTitle).font(.headline).lineLimit(wide ? 1 : 2)
+                Text(segment.displayTitle).font(.headline).lineLimit(typeSize.isAccessibilitySize ? 4 : wide ? 1 : 2)
                 HStack(spacing: 6) {
                     if let stars = segment.stars {
                         Text(Segment.starString(stars)).foregroundStyle(brandOrange)
@@ -230,6 +257,9 @@ struct FilmRow: View {
             }
         }
         .padding(.vertical, wide ? 0 : 2)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Spoken.join([Spoken.film(segment, passages: passages), mention.episode.series.title,
+                                         Spoken.date(mention.episode.date)]))
     }
 }
 
@@ -301,9 +331,14 @@ struct EpisodeCard: View {
         .onHover { hovering = $0 }
         .contentShape(Rectangle())
         .onTapGesture { model.open(.episode(episode.id, highlight: nil)) }
-        .modifier(FavoriteActions(episode: episode, favorites: model.favorites))
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Spoken.join([Spoken.title(episode),
+                                         resume.map { "reprendre à \(Spoken.duration($0))" } ?? Spoken.date(episode.date),
+                                         resume == nil ? episode.duration.map(Spoken.duration) : nil]))
         .accessibilityAddTraits(.isButton)
+        .accessibilityAction { model.open(.episode(episode.id, highlight: nil)) }
+        .accessibilityAction(named: resume == nil ? "Écouter" : "Reprendre l'écoute") { model.play(episode) }
+        .modifier(FavoriteActions(episode: episode, favorites: model.favorites))
     }
 
     private var subtitle: String {
