@@ -103,7 +103,7 @@ struct ListingPage: View {
         }
         .toolbar {
             if sizeClass != .compact {
-                ToolbarItem { LayoutSwitch(layout: $layout, list: "Afficher en grille d'affiches ou en liste") }
+                ToolbarItem { LayoutSwitch(layout: $layout, list: "Afficher en liste ou en grille d'affiches") }
             }
             ToolbarItem {
                 Menu {
@@ -131,6 +131,10 @@ struct ListingPage: View {
                 #endif
                 .help("Trier par date ou par nom ; choisir à nouveau inverse l'ordre")
             }
+            #if os(macOS)
+            // Room between the buttons and the search field, which follows them.
+            if #available(macOS 26, *) { ToolbarSpacer(.fixed) }
+            #endif
         }
     }
 }
@@ -148,8 +152,8 @@ struct LayoutSwitch: View {
     var body: some View {
         #if os(macOS)
         Picker("Affichage", selection: $layout) {
-            Label("Grille", systemImage: "square.grid.2x2").tag(ListingLayout.grid)
             Label("Liste", systemImage: "list.bullet").tag(ListingLayout.list)
+            Label("Grille", systemImage: "square.grid.2x2").tag(ListingLayout.grid)
         }
         .pickerStyle(.segmented)
         .help(list)
@@ -244,7 +248,11 @@ struct ShowPage: View {
 
     @ToolbarContentBuilder private var layoutSwitch: some ToolbarContent {
         if offersGrid {
-            ToolbarItem { LayoutSwitch(layout: $layout, list: "Afficher les affiches des films ou la liste des épisodes") }
+            ToolbarItem { LayoutSwitch(layout: $layout, list: "Afficher la liste des épisodes ou les affiches des films") }
+            #if os(macOS)
+            // Room between the switch and the search field, which follows it.
+            if #available(macOS 26, *) { ToolbarSpacer(.fixed) }
+            #endif
         }
     }
 
