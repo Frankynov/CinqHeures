@@ -50,7 +50,7 @@ l'épisode est instantané, et ils s'écoutent sans connexion.
 **Depuis Spotlight.** Tapez un titre dans la recherche du Mac ou de l'iPhone : le film s'ouvre dans l'app.
 
 **Depuis l'icône.** Un appui long sur l'icône (ou un clic droit dans le Dock) : une critique au
-hasard, reprendre l'écoute, la dernière critique de Dayez, rechercher.
+hasard, reprendre l'écoute, les dernières critiques d'Hugues Dayez, rechercher.
 
 **Prévenu des nouveautés.** Une notification à chaque nouvel épisode de Dayez ou de *Quelque part*.
 

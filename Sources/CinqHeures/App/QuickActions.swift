@@ -43,7 +43,7 @@ extension AppModel {
             items.append(.init(action: .resume, title: "Reprendre", subtitle: Spoken.title(last.episode), symbol: "play.fill"))
         }
         if let dayez = newestDayez {
-            items.append(.init(action: .dayez, title: "Dernière critique de Dayez",
+            items.append(.init(action: .dayez, title: "Dernières critiques d'Hugues Dayez",
                                subtitle: dayez.subjects.map(\.displayTitle).joined(separator: " · "), symbol: "popcorn.fill"))
         }
         items.append(.init(action: .search, title: "Rechercher", subtitle: nil, symbol: "magnifyingglass"))
