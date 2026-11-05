@@ -182,6 +182,7 @@ final class AppModel {
         rebuildIndex()
         updateCacheUsage()
         EpisodeAlerts.shared.setUp { [weak self] id in self?.openFromOutside(.episode(id, highlight: nil)) }
+        QuickAction.model = self
         // Posters pile up while browsing: measure again now and then, so the menu's figure is current.
         // Only while the app is in front: a walk through thousands of files every 20 seconds, with
         // the app in the background (playing on a locked iPhone, say), was work for nobody.
@@ -370,6 +371,12 @@ final class AppModel {
     }
 
     /// Another random review in the banner, not one featured in the last thirty.
+    /// Whether the index has been built once: what the icon's shortcuts need (`QuickAction`).
+    private(set) var isBrowsable = false
+
+    /// A well-rated review at random, as the home page's banner picks them.
+    func surprise() -> Work.Mention? { discovery.hero(seed: UInt64.random(in: 0..<UInt64.max)) }
+
     func anotherHero() {
         for _ in 0..<12 {
             let candidate = discovery.hero(seed: UInt64.random(in: 0..<UInt64.max))
@@ -440,6 +447,8 @@ final class AppModel {
             rebuildHome()
             searchChanged()
             SpotlightIndex.update(snapshot)
+            isBrowsable = true
+            performPendingQuickAction()
         }
     }
 

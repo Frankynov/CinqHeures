@@ -58,6 +58,11 @@ Notes for developers: how the app is built and how it reads each show. The main 
   kept, the oldest deleted first; an interrupted file resumes where it stopped. iPhone and iPad only
   download over Wi-Fi, not on a mobile connection or in Low Data Mode. Counted in, and cleared by,
   Réinitialiser › Cache.
+- **The icon's menu** (`QuickActions`): a long press on the home screen icon, a right click on the
+  Dock icon. *Une critique au hasard* (a well-rated review, as the home banner picks them, played and
+  its page opened), *Reprendre* (the episode in progress, under its name; only when there's one),
+  *Dernière critique de Dayez* (this week's films) and *Rechercher*. Four, iOS's limit. On iOS the
+  items are set as the app goes to the background; one that launches the app waits for the index.
 - **Spotlight** (`SpotlightIndex`): every film, series and person, and every episode, indexed once per
   catalogue version, in the background; a result opens its page.
 - **Notifications** (`EpisodeAlerts`): a new Dayez or Quelque part episode, a few per show at most.

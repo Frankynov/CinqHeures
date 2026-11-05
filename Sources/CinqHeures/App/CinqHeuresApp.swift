@@ -19,6 +19,8 @@ private struct ClearCacheMenuItem: View {
 @main
 struct CinqHeuresApp: App {
     @ViewState private var model = AppModel()
+    /// The Dock icon's menu (QuickActions).
+    @NSApplicationDelegateAdaptor(MacAppDelegate.self) private var appDelegate
 
     var body: some Scene {
         WindowGroup("5heures") {

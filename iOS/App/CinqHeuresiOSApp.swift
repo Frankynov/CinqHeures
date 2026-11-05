@@ -5,6 +5,8 @@ import SwiftUI
 @main
 struct CinqHeuresiOSApp: App {
     @ViewState private var model = AppModel()
+    /// The home screen icon's shortcuts (QuickActions).
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     init() {
         // Audio keeps playing with the screen locked or another app in front, like any podcast app.
@@ -23,7 +25,10 @@ struct CinqHeuresiOSApp: App {
                 .task { await model.start() }
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .background { EpisodeAlerts.scheduleRefresh() }
+            if phase == .background {
+                EpisodeAlerts.scheduleRefresh()
+                model.updateQuickActions()
+            }
         }
         // New Dayez and Quelque part episodes while the app is closed (see EpisodeAlerts).
         .backgroundTask(.appRefresh(EpisodeAlerts.refreshTask)) {
