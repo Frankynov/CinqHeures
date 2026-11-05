@@ -1,4 +1,5 @@
 import CinqHeuresCore
+import CoreSpotlight
 import SwiftUI
 
 struct MainWindow: View {
@@ -69,6 +70,7 @@ struct MainWindow: View {
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { contentWidth = $0 }
         }
         .searchable(text: $model.searchText, placement: .toolbar, prompt: "Film, série, réalisateur, acteur, artiste…")
+        .modifier(SearchFocus(requests: model.searchFocusRequests))
         .modifier(AppBehaviors(model: model))
         // No toolbar background. On macOS 26 the content column's toolbar band starts a few points
         // inside the sidebar, because content extends under it, so its edge doesn't line up with
@@ -97,6 +99,22 @@ struct MainWindow: View {
 
     @ViewBuilder private func destination(_ route: Route) -> some View {
         RoutePage(route: route, model: model)
+    }
+}
+
+/// Puts the cursor in the search field when asked (⌘F). macOS 15 and later; before, the field is clicked.
+private struct SearchFocus: ViewModifier {
+    let requests: Int
+    @FocusState private var focused: Bool
+
+    func body(content: Content) -> some View {
+        if #available(macOS 15, iOS 18, *) {
+            content
+                .searchFocused($focused)
+                .onChange(of: requests) { focused = true }
+        } else {
+            content
+        }
     }
 }
 
@@ -137,6 +155,10 @@ struct AppBehaviors: ViewModifier {
                 Task { await model.refreshFeed() }
             }
             .sheet(isPresented: $model.showsReset) { ResetSheet(model: model) }
+            // A film, series, person or episode picked in Spotlight.
+            .onContinueUserActivity(CSSearchableItemActionType) { activity in
+                if let route = SpotlightIndex.route(for: activity) { model.openFromOutside(route) }
+            }
     }
 }
 
@@ -278,7 +300,8 @@ struct ResetSheet: View {
 
             VStack(alignment: .leading, spacing: 14) {
                 choice($cache, title: "Cache · \(CacheUsage.text(usage.total))",
-                       detail: "Catalogue (\(CacheUsage.text(usage.catalogue))) et affiches (\(CacheUsage.text(usage.posters))). "
+                       detail: "Catalogue (\(CacheUsage.text(usage.catalogue))), affiches (\(CacheUsage.text(usage.posters))) "
+                             + "et épisodes écoutés récemment (\(CacheUsage.text(usage.episodes))). "
                              + "L'app retélécharge ensuite le catalogue depuis 5heures.be, comme à la première ouverture.")
                     .disabled(model.isSyncing)
                 choice($progress, title: "Progression d'écoute · \(inProgress) épisode\(inProgress > 1 ? "s" : "") en cours",

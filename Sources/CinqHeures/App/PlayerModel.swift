@@ -164,14 +164,19 @@ final class PlayerModel {
         currentTime = start
         duration = 0
         currentSegmentID = nil
+        // Kept on disk, and fetched whole in the background if it isn't yet (see AudioCache).
+        AudioCache.shared.playing(episode.audioURL)
         loadTask = Task {
             var lastError = "Le fichier audio n'a pas pu être chargé."
             for attempt in 0..<3 {
                 if Task.isCancelled { return }
                 if attempt > 0 { try? await Task.sleep(for: .seconds(Double(attempt) * 1.5)) }
-                // 5heures.be's own audio server needs the patient loader; Ausha's doesn't.
-                let item = AVPlayerItem(asset: episode.series.isOnSite ? loader.asset(for: episode.audioURL)
-                                                                       : AVURLAsset(url: episode.audioURL))
+                // From the disk when the whole file is there (offline too). Otherwise 5heures.be's own
+                // audio server needs the patient loader, which reads what's already on disk itself;
+                // Ausha's and Audiobookshelf's don't.
+                let asset = AudioCache.shared.file(for: episode.audioURL).map { AVURLAsset(url: $0) }
+                    ?? (episode.series.isOnSite ? loader.asset(for: episode.audioURL) : AVURLAsset(url: episode.audioURL))
+                let item = AVPlayerItem(asset: asset)
                 player.replaceCurrentItem(with: item)
                 do {
                     try await waitUntilReady(item)
@@ -265,6 +270,41 @@ final class PlayerModel {
     }
 
     func skip(by seconds: Double) { seek(to: currentTime + seconds) }
+
+    // MARK: Passages
+
+    /// Where the episode's passages start (films, series, people, asides): the marks on the bar.
+    var marks: [Double] { (episode?.segments ?? []).compactMap(\.start).filter { $0 > 0 }.sorted() }
+
+    /// The passage after the one playing, if the episode has one.
+    var nextPassage: Segment? {
+        guard let start = marks.first(where: { $0 > currentTime + 1 }) else { return nil }
+        return episode?.segments.first { $0.start == start }
+    }
+
+    /// Where "previous" goes: the start of the passage playing when it's more than a few seconds in
+    /// (like a previous-track button), else the one before it, else the start of the episode.
+    private var previousTarget: Double {
+        let current = marks.last { $0 <= currentTime + 0.5 }
+        if let current, currentTime - current > 3 { return current }
+        return marks.last { $0 < (current ?? currentTime) - 0.5 } ?? 0
+    }
+
+    /// The passage "previous" goes back to (nil: the start of the episode).
+    var previousPassage: Segment? {
+        let target = previousTarget
+        return target > 0 ? episode?.segments.first { $0.start == target } : nil
+    }
+
+    func nextPassageStart() {
+        guard phase == .ready, let start = nextPassage?.start else { return }
+        seek(to: start)
+    }
+
+    func previousPassageStart() {
+        guard phase == .ready else { return }
+        seek(to: previousTarget)
+    }
 
     func seek(to seconds: Double) {
         guard phase == .ready else { return }
@@ -444,6 +484,19 @@ final class PlayerModel {
                 return .success
             }
         }
+        // Next and previous passage: the Mac's media keys, a double or triple press on AirPods and
+        // earphones. The lock screen and Control Centre keep their ±15 s buttons, which take precedence
+        // there (`updatePassageCommands` enables these only for an episode with marks).
+        center.nextTrackCommand.addTarget { [weak self] _ in
+            Task { @MainActor in self?.nextPassageStart() }
+            return .success
+        }
+        center.previousTrackCommand.addTarget { [weak self] _ in
+            Task { @MainActor in self?.previousPassageStart() }
+            return .success
+        }
+        center.nextTrackCommand.isEnabled = false
+        center.previousTrackCommand.isEnabled = false
         center.changePlaybackPositionCommand.addTarget { [weak self] event in
             guard let event = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
             let position = event.positionTime
@@ -452,7 +505,15 @@ final class PlayerModel {
         }
     }
 
+    private func updatePassageCommands() {
+        let center = MPRemoteCommandCenter.shared()
+        let has = !marks.isEmpty
+        if center.nextTrackCommand.isEnabled != has { center.nextTrackCommand.isEnabled = has }
+        if center.previousTrackCommand.isEnabled != has { center.previousTrackCommand.isEnabled = has }
+    }
+
     private func updateNowPlaying() {
+        updatePassageCommands()
         guard let episode else { return }
         var info: [String: Any] = [
             MPMediaItemPropertyTitle: (currentSegment?.title ?? episode.title),

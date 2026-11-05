@@ -6,6 +6,12 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
+		<string>fetch</string>
+	</array>
+	<!-- New-episode notifications: a check of the feeds when iOS lets the app run (EpisodeAlerts). -->
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>be.cinqheures.player.refresh</string>
 	</array>
 </dict>
 </plist>

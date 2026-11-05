@@ -43,6 +43,34 @@ Notes for developers: how the app is built and how it reads each show. The main 
   player doesn't). With "Increase contrast" the orange darkens on light backgrounds, lightens on dark.
   The spoken forms are in `Sources/CinqHeures/UI/Spoken.swift`.
 
+- **Passages**: ⏮ and ⏭ go to the start of the previous or next passage (the marks on the bar; ⏮
+  first goes back to the start of the one playing, like a previous-track button). In the bar only when
+  it has room for them (840 points and more on one row; always on the iPad's two rows), on the outside
+  of ±15 s and quieter; in the iPhone's full player; in Lecture (⇧⌘← ⇧⌘→); on the Mac's media keys
+  and a double or triple press of AirPods. The lock screen and Control Centre keep ±15 s, which take
+  precedence there; the track commands are enabled only for an episode with marks.
+- **Menus (Mac)**: Lecture (play, ±15 s, passages, speed, the favourite ⌘D, the episode playing ⌘L)
+  and Aller (back ⌘[, search ⌘F, the sidebar's rows ⌘1 to ⌘9).
+- **Episodes on disk** (`AudioCache`): while an episode plays its whole file downloads in the
+  background, from the start, into `Caches/CinqHeures/Episodes`. `RangeLoader` reads whatever has
+  arrived from there before asking the server, so jumping into it is instant even when 5heures.be is
+  slow; a complete file plays from the disk, offline too. The one playing and the five before it are
+  kept, the oldest deleted first; an interrupted file resumes where it stopped. iPhone and iPad only
+  download over Wi-Fi, not on a mobile connection or in Low Data Mode. Counted in, and cleared by,
+  Réinitialiser › Cache.
+- **Spotlight** (`SpotlightIndex`): every film, series and person, and every episode, indexed once per
+  catalogue version, in the background; a result opens its page.
+- **Notifications** (`EpisodeAlerts`): a new Dayez or Quelque part episode, a few per show at most.
+  Asked for "provisionally", so no question when the app opens: the first ones go quietly to
+  Notification Centre, where they can be kept or turned off. iPhone and iPad check the feeds in a
+  background refresh (iOS picks the moment); the Mac every hour while the app is open. Tapping one
+  opens the episode; with the app in front they go to Notification Centre without a banner.
+- **Where to watch**: a film or series page says, in one line under its stars, where it streams in
+  the device's country ("Sur Netflix, Prime Video"; else free, else to rent), with the services'
+  logos, linking to TMDB's page for it. The film is found on TMDB by title and year, then
+  `watch/providers` (JustWatch's data, credited under the synopsis). Needs the proxy of November 2026,
+  which passes those requests (and keeps them a week).
+
 **5heures › Réinitialiser… (cache : …)** opens a sheet with two checkboxes, in any combination: the
 **cache** (catalogue and posters; the app then re-downloads like a first launch) and the **listening
 progress** (resume positions and *Continuer l'écoute*).

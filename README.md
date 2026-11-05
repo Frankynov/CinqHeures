@@ -33,12 +33,26 @@ convaincu ? « Une autre ». Et le bouton à la chèvre, *Surprenez-moi*, mélan
 *Personnalités*…
 
 **Chaque épisode et tout son programme.** Les films, séries et invités d'un épisode, avec leur minute.
-Pendant l'écoute, la barre de lecture marque chaque film ; survolez-la pour voir lequel.
+Pendant l'écoute, la barre de lecture marque chaque film ; survolez-la pour voir lequel. ⏮ et ⏭ (ou
+les touches multimédia du Mac, un double appui sur les AirPods) passent au film précédent ou suivant.
+
+**Où le regarder.** La page d'un film dit, discrètement, sur quelle plateforme il est disponible en
+Belgique.
 
 **Reprendre où vous en étiez.** *Continuer l'écoute* garde votre place dans chaque épisode.
 
 **Vos favoris.** Un cœur sur un épisode, ou dans le lecteur pendant l'écoute, et il vous attend dans
 *Favoris*, dans la barre latérale et sur l'accueil.
+
+**Même hors ligne.** Les derniers épisodes écoutés restent sur l'appareil : reprendre ou sauter dans
+l'épisode est instantané, et ils s'écoutent sans connexion.
+
+**Depuis Spotlight.** Tapez un titre dans la recherche du Mac ou de l'iPhone : le film s'ouvre dans l'app.
+
+**Prévenu des nouveautés.** Une notification à chaque nouvel épisode de Dayez ou de *Quelque part*.
+
+**Pour tous.** VoiceOver lit chaque film, note et minute en toutes lettres ; l'app suit la taille du
+texte et le contraste renforcé.
 
 **Et chaque semaine, du nouveau :** *Il est toujours 5 heures quelque part* de Rudy Léonet, et les
 critiques d'Hugues Dayez, avec affiches et résumés des films.
@@ -79,6 +93,7 @@ critiques d'Hugues Dayez, avec affiches et résumés des films.
   matinée de [Musiq3 (RTBF)](https://auvio.rtbf.be/emission/les-critiques-d-hugues-dayez-29139).
 - **Affiches et résumés** des films d'Hugues Dayez : [TMDB](https://www.themoviedb.org).
   *This product uses the TMDB API but is not endorsed or certified by TMDB.*
+- **Où regarder** : données [JustWatch](https://www.justwatch.com), via TMDB.
 - **L'icône** reprend le logo de 5heures.
 
 Toutes les émissions appartiennent à leurs auteurs. L'app les écoute là où elles sont publiées,

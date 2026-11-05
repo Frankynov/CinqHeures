@@ -41,17 +41,19 @@ struct SearchOutcome: Sendable {
 struct CacheUsage: Equatable, Sendable {
     var catalogue = 0
     var posters = 0
+    /// The episodes played lately, kept on disk (AudioCache).
+    var episodes = 0
     /// Anything else in the app's caches folder (answers older versions let the system cache).
     var other = 0
 
-    var total: Int { catalogue + posters + other }
+    var total: Int { catalogue + posters + episodes + other }
 
     /// Measured from the files themselves: URLCache's own counter lags well behind deletions.
     static func measure() -> CacheUsage {
         let caches = URL.cachesDirectory
         let systemCache = caches.appendingPathComponent(Bundle.main.bundleIdentifier ?? "be.cinqheures.player")
         return CacheUsage(catalogue: size(of: Catalogue.defaultLocation), posters: size(of: PosterCache.folder),
-                          other: size(of: systemCache))
+                          episodes: size(of: AudioCache.folder), other: size(of: systemCache))
     }
 
     /// Bytes on disk of a file, or of everything inside a folder.
@@ -179,6 +181,7 @@ final class AppModel {
         if films.adopt(Self.shippedFilms()) { try? films.save() }
         rebuildIndex()
         updateCacheUsage()
+        EpisodeAlerts.shared.setUp { [weak self] id in self?.openFromOutside(.episode(id, highlight: nil)) }
         // Posters pile up while browsing: measure again now and then, so the menu's figure is current.
         // Only while the app is in front: a walk through thousands of files every 20 seconds, with
         // the app in the background (playing on a locked iPhone, say), was work for nobody.
@@ -227,6 +230,8 @@ final class AppModel {
         // The caches delete their own files (in the background). Deleting their folders instead
         // pulls the database out from under them, and nothing gets cached again until a relaunch.
         PosterCache.shared.clear()
+        AudioCache.shared.clear()
+        SpotlightIndex.reset()
         URLCache.shared.removeAllCachedResponses()
         hero = nil
         recentHeroes = []
@@ -306,6 +311,18 @@ final class AppModel {
         case .shows: showsPath = []
         case .search: searchPath = []
         }
+    }
+
+    /// Bumped by Aller › Rechercher (⌘F): the window puts the cursor in the search field.
+    private(set) var searchFocusRequests = 0
+    func focusSearch() { searchFocusRequests += 1 }
+
+    /// A page asked for from outside the app (a Spotlight result): out of any search, on top of the
+    /// sidebar's page (Accueil's tab on iPhone). The sidebar row stays: changing it empties the pages.
+    func openFromOutside(_ route: Route) {
+        searchText = ""
+        phoneTab = .home
+        path = [route]
     }
 
     /// The episode being played, as a page.
@@ -422,6 +439,7 @@ final class AppModel {
             starCounts = scored.mapValues(\.count)
             rebuildHome()
             searchChanged()
+            SpotlightIndex.update(snapshot)
         }
     }
 
@@ -439,6 +457,23 @@ final class AppModel {
         applyDetails()
         lookUpFilms()
         lookUpChapters()
+        // New episodes while the app stays open (the Mac above all): the feeds again every hour.
+        if hourlyFeeds == nil {
+            hourlyFeeds = Task { [weak self] in
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(3600))
+                    await self?.refreshFeed()
+                }
+            }
+        }
+    }
+
+    private var hourlyFeeds: Task<Void, Never>?
+
+    /// iPhone and iPad, in the background: the feeds, for the "nouvel épisode" notifications.
+    func backgroundRefresh() async {
+        lastFeedRefresh = .distantPast
+        await refreshFeed()
     }
 
     // MARK: Film details from TMDB
@@ -582,6 +617,7 @@ final class AppModel {
             saveCatalogue()
             rebuildIndex()
         }
+        EpisodeAlerts.shared.announce(newIn: catalogue)
         lookUpFilms()          // this week's three films, and any not found last time
         lookUpChapters()
     }
@@ -650,6 +686,32 @@ final class AppModel {
             }
             workDetails.record(found, for: key)
             try? workDetails.save()
+        }
+    }
+
+    // MARK: Where to watch
+
+    /// Where each film or series streams in this country, by `Work.id`: looked up when its page is
+    /// first opened, kept until the app quits (the proxy keeps TMDB's answers a week).
+    private(set) var streaming: [String: Streaming] = [:]
+    private var streamingAsked: Set<String> = []
+
+    func lookUpStreaming(of work: Work) {
+        guard work.kind == .movie || work.kind == .tvShow, let latest = work.mentions.first,
+              streamingAsked.insert(work.id).inserted else { return }
+        let region = Locale.current.region?.identifier ?? "BE"
+        Task { [tmdb] in
+            do {
+                let segment = latest.segment
+                let id = work.kind == .movie
+                    ? try await tmdb.movieID(titled: segment.displayTitle, year: segment.year)
+                    : try await tmdb.seriesID(titled: segment.displayTitle, discussedOn: latest.episode.date)
+                guard let id, let found = try await tmdb.streaming(id: id, series: work.kind == .tvShow, region: region) else { return }
+                streaming[work.id] = found
+            } catch {
+                // Offline, or a proxy that doesn't pass these requests yet: asked again next launch.
+                streamingAsked.remove(work.id)
+            }
         }
     }
 

@@ -1,4 +1,5 @@
 #if os(macOS)
+import CinqHeuresCore
 import SwiftUI
 
 /// "Réinitialiser… (cache : 12 Mo)" in the app menu: clears the cache, the listening progress, or both.
@@ -35,15 +36,84 @@ struct CinqHeuresApp: App {
                 Button("Actualiser le catalogue") { Task { await model.refresh(everything: true) } }
                     .keyboardShortcut("r", modifiers: .command)
             }
-            CommandMenu("Lecture") {
-                Button("Lecture / Pause") { model.player.togglePlayPause() }
-                    .keyboardShortcut("p", modifiers: .command)
-                Button("Reculer de 15 secondes") { model.player.skip(by: -PlayerModel.jump) }
-                    .keyboardShortcut(.leftArrow, modifiers: .command)
-                Button("Avancer de 15 secondes") { model.player.skip(by: PlayerModel.jump) }
-                    .keyboardShortcut(.rightArrow, modifiers: .command)
+            CommandMenu("Lecture") { PlaybackMenu(model: model) }
+            CommandMenu("Aller") { GoMenu(model: model) }
+        }
+    }
+}
+
+/// The Lecture menu. A view of its own, so its items follow the player (the favourite's wording,
+/// the speed's checkmark, what's available).
+private struct PlaybackMenu: View {
+    let model: AppModel
+
+    var body: some View {
+        let player = model.player
+        let ready = player.phase == .ready
+        Button(player.isPlaying ? "Pause" : "Lecture") { player.togglePlayPause() }
+            .keyboardShortcut("p", modifiers: .command)
+            .disabled(!ready)
+        Divider()
+        Button("Reculer de 15 secondes") { player.skip(by: -PlayerModel.jump) }
+            .keyboardShortcut(.leftArrow, modifiers: .command)
+            .disabled(!ready)
+        Button("Avancer de 15 secondes") { player.skip(by: PlayerModel.jump) }
+            .keyboardShortcut(.rightArrow, modifiers: .command)
+            .disabled(!ready)
+        Button("Passage précédent") { player.previousPassageStart() }
+            .keyboardShortcut(.leftArrow, modifiers: [.command, .shift])
+            .disabled(!ready || player.marks.isEmpty)
+        Button("Passage suivant") { player.nextPassageStart() }
+            .keyboardShortcut(.rightArrow, modifiers: [.command, .shift])
+            .disabled(!ready || player.nextPassage == nil)
+        Divider()
+        Picker("Vitesse", selection: Binding(get: { player.rate }, set: { player.rate = $0 })) {
+            ForEach(PlayerModel.speeds, id: \.self) { speed in
+                Text(speed == speed.rounded() ? String(format: "%.0f×", speed) : String(format: "%g×", speed)).tag(speed)
             }
         }
+        Divider()
+        if let episode = player.episode {
+            let isFavorite = model.favorites.contains(episode)
+            Button(isFavorite ? "Retirer des favoris" : "Ajouter aux favoris") { model.favorites.toggle(episode) }
+                .keyboardShortcut("d", modifiers: .command)
+        } else {
+            Button("Ajouter aux favoris") {}.keyboardShortcut("d", modifiers: .command).disabled(true)
+        }
+        Button("Afficher l'épisode en cours") {
+            model.searchText = ""
+            model.openCurrentEpisode()
+        }
+        .keyboardShortcut("l", modifiers: .command)
+        .disabled(player.episode == nil)
+    }
+}
+
+/// The Aller menu: the sidebar's rows by number, as in Music or Finder, and back.
+private struct GoMenu: View {
+    let model: AppModel
+
+    var body: some View {
+        Button("Précédent") { _ = model.path.popLast() }
+            .keyboardShortcut("[", modifiers: .command)
+            .disabled(model.path.isEmpty)
+        Button("Rechercher") { model.focusSearch() }
+            .keyboardShortcut("f", modifiers: .command)
+        Divider()
+        item("Accueil", .home, "1")
+        item("Favoris", .favorites, "2")
+        item("Récents", .all, "3")
+        ForEach(Array(Series.allCases.enumerated()), id: \.element) { index, series in
+            item(series.title, .show(series), KeyEquivalent(Character(String(index + 4))))
+        }
+    }
+
+    private func item(_ title: String, _ destination: SidebarItem, _ key: KeyEquivalent) -> some View {
+        Button(title) {
+            model.searchText = ""
+            if model.sidebar == destination { model.popToRoot() } else { model.sidebar = destination }
+        }
+        .keyboardShortcut(key, modifiers: .command)
     }
 }
 #endif

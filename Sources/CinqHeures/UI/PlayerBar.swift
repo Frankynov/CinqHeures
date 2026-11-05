@@ -17,9 +17,12 @@ struct PlayerBar: View {
     static let reservedHeight: CGFloat = 132
     #endif
 
-    /// Whether the bar is narrower than its one-row form needs (about 760 points). A yes or no rather
-    /// than the width itself, so resizing the window doesn't redraw the bar at every step.
-    @ViewState private var isNarrow = false
+    /// How much room the bar has: under 760 points its one-row form is tight (`isNarrow`); from 840
+    /// it also has room for the previous and next passage buttons. A bucket rather than the width
+    /// itself, so resizing the window doesn't redraw the bar at every step.
+    @ViewState private var room = Room.regular
+    private enum Room { case narrow, regular, roomy }
+    private var isNarrow: Bool { room == .narrow }
 
     var body: some View {
         Group {
@@ -31,7 +34,7 @@ struct PlayerBar: View {
         // The width it's given, not the one it takes: a bar too wide for its column measured itself
         // as wide, and so never took its narrow form.
         .frame(minWidth: 0, maxWidth: 1240)
-        .onGeometryChange(for: Bool.self) { $0.size.width < 760 } action: { isNarrow = $0 }
+        .onGeometryChange(for: Room.self) { $0.size.width < 760 ? .narrow : $0.size.width < 840 ? .regular : .roomy } action: { room = $0 }
         .modifier(PlaybackAnnouncements(player: player))
         // The bar keeps its height over the pages: past this size its title and times were cut off.
         // The full player on iPhone takes any size.
@@ -54,7 +57,8 @@ struct PlayerBar: View {
             // give up some width, rather than the bar running past both edges of the column.
             nowPlayingButton
                 .frame(minWidth: isNarrow ? 110 : 170, idealWidth: 270, maxWidth: 300, alignment: .leading)
-            transport
+            // The passage buttons only with room to spare: the title and the scrubber come first.
+            transport(passages: room == .roomy)
                 .disabled(player.phase != .ready)
             // The scrubber gets the room first: on a narrow window the volume slider goes instead.
             ChapterScrubber(player: player)
@@ -76,7 +80,8 @@ struct PlayerBar: View {
             HStack(spacing: 12) {
                 nowPlayingButton
                     .frame(maxWidth: .infinity, alignment: .leading)
-                transport
+                // The title gives way here, so the passage buttons always have room.
+                transport(passages: true)
                     .disabled(player.phase != .ready)
                 trailing(withVolume: false).fixedSize()
             }
@@ -114,8 +119,12 @@ struct PlayerBar: View {
         #endif
     }
 
-    private var transport: some View {
-        HStack(spacing: 14) {
+    /// ±15 s around play, and with `passages`, previous and next passage on the outside: smaller and
+    /// quieter, and only for an episode with marks on its bar.
+    private func transport(passages: Bool) -> some View {
+        let passages = passages && !player.marks.isEmpty
+        return HStack(spacing: 14) {
+            if passages { PassageButton(player: player, forward: false) }
             Button { player.skip(by: -PlayerModel.jump) } label: {
                 Image(systemName: "gobackward.15").font(.system(size: 17, weight: .medium))
             }
@@ -143,6 +152,7 @@ struct PlayerBar: View {
             }
             .tooltip("Avancer de 15 secondes")
             .accessibilityLabel("Avancer de 15 secondes")
+            if passages { PassageButton(player: player, forward: true) }
         }
         .buttonStyle(.plain)
         .foregroundStyle(.primary)
@@ -301,6 +311,33 @@ struct PlaybackAnnouncements: ViewModifier {
     }
 }
 
+/// Previous or next passage: the start of the film (series, person, aside) before or after the one
+/// playing. Its tooltip and VoiceOver name say which.
+struct PassageButton: View {
+    let player: PlayerModel
+    let forward: Bool
+    var size: CGFloat = 13
+
+    var body: some View {
+        let target = forward ? player.nextPassage : player.previousPassage
+        let name = forward ? "Passage suivant" : target == nil ? "Début de l'épisode" : "Passage précédent"
+        let full = target.map { "\(name) : \($0.displayTitle)" } ?? name
+        Button {
+            if forward { player.nextPassageStart() } else { player.previousPassageStart() }
+        } label: {
+            Image(systemName: forward ? "forward.end.fill" : "backward.end.fill")
+                .font(.system(size: size, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(minWidth: size + 6, minHeight: size + 10)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(forward && target == nil)
+        .tooltip(full)
+        .accessibilityLabel(full)
+    }
+}
+
 /// Under the bar's title: the show and the date and, on iPhone and iPad, the score of the film being
 /// discussed, when there's room for it.
 private struct InfoLine: View {
@@ -451,20 +488,13 @@ private struct ChapterScrubber: View {
     private func step(_ direction: AccessibilityAdjustmentDirection) {
         guard ready else { return }
         let time = player.currentTime
-        let starts = chapters.compactMap(\.start).sorted()
+        let marked = !player.marks.isEmpty
         switch direction {
         case .increment:
-            player.seek(to: starts.first { $0 > time + 1 } ?? min(time + 60, max(0, player.duration - 1)))
+            if player.nextPassage != nil { player.nextPassageStart() }
+            else { player.seek(to: min(time + 60, max(0, player.duration - 1))) }
         case .decrement:
-            let current = starts.last { $0 <= time + 0.5 }
-            if let current, time - current > 3 {
-                // A few seconds into a film: back to its start, like a previous-track button.
-                player.seek(to: current)
-            } else if let previous = starts.last(where: { $0 < (current ?? time) - 0.5 }) {
-                player.seek(to: previous)
-            } else {
-                player.seek(to: starts.isEmpty ? max(0, time - 60) : 0)
-            }
+            if marked { player.previousPassageStart() } else { player.seek(to: max(0, time - 60)) }
         @unknown default:
             break
         }
@@ -722,6 +752,8 @@ struct FullPlayer: View {
     let openEpisode: () -> Void
     @Environment(\.dismiss) private var dismiss
 
+    private var hasMarks: Bool { !player.marks.isEmpty }
+
     var body: some View {
         let episode = player.episode
         let segment = player.currentSegment ?? player.requestedSegment
@@ -767,7 +799,8 @@ struct FullPlayer: View {
                 ChapterScrubber(player: player, timesBelow: true)
                     .padding(.horizontal, 24)
 
-                HStack(spacing: 44) {
+                HStack(spacing: hasMarks ? 30 : 44) {
+                    if hasMarks { PassageButton(player: player, forward: false, size: 20) }
                     Button { player.skip(by: -PlayerModel.jump) } label: {
                         Image(systemName: "gobackward.15").font(.system(size: 30, weight: .medium))
                     }
@@ -790,6 +823,7 @@ struct FullPlayer: View {
                         Image(systemName: "goforward.15").font(.system(size: 30, weight: .medium))
                     }
                     .accessibilityLabel("Avancer de 15 secondes")
+                    if hasMarks { PassageButton(player: player, forward: true, size: 20) }
                 }
                 .buttonStyle(.plain)
                 .disabled(player.phase != .ready)

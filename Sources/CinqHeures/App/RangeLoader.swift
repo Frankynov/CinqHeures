@@ -155,6 +155,8 @@ final class RangeLoader: NSObject, AVAssetResourceLoaderDelegate, @unchecked Sen
         if let hit = lock.withLock({ cache[index] }) { return hit.dropFirst(skip) }
         let first = index * Self.chunk
         let last = min(total, first + Self.chunk) - 1
+        // Already downloaded in the background (`AudioCache`): no need to ask the server.
+        if let disk = AudioCache.shared.read(url, range: first...last) { return disk.dropFirst(skip) }
         let data = try await fetch(url, range: first...last)
         lock.withLock {
             guard cachedURL == url else { return }
@@ -171,6 +173,10 @@ final class RangeLoader: NSObject, AVAssetResourceLoaderDelegate, @unchecked Sen
 
     private func totalLength(of url: URL) async throws -> Int64 {
         if let length = lock.withLock({ length }) { return length }
+        if let known = AudioCache.shared.length(of: url) {
+            lock.withLock { length = known }
+            return known
+        }
         var found: Int64?
         _ = try await fetch(url, range: 0...1) { response in
             found = (response.value(forHTTPHeaderField: "Content-Range")?.split(separator: "/").last).flatMap { Int64($0) }

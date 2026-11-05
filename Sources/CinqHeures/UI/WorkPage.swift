@@ -60,6 +60,7 @@ struct WorkPage: View {
             // Keyed by what's looked up: a film opened just after the catalogue was downloaded again can
             // show its old entry (no slug yet) until the index is rebuilt.
             .task(id: WorkDetails.key(for: work)) { model.lookUpDetails(of: work) }
+            .task(id: work.id) { model.lookUpStreaming(of: work) }
             .navigationTitle(segment.displayTitle)
             .navigationSubtitle(kind.label)
             #if os(iOS)
@@ -96,6 +97,9 @@ struct WorkPage: View {
                 Text(Segment.starString(best)).font(.title3).foregroundStyle(brandOrange)
                     .accessibilityLabel(Spoken.stars(best))
             }
+            if let streaming = model.streaming[work.id] {
+                StreamingLine(streaming: streaming)
+            }
         }
     }
 
@@ -104,8 +108,10 @@ struct WorkPage: View {
         let own = work.mentions.lazy.compactMap(\.segment.overview).first
         let fetched = model.details(of: work)
         let overview = own ?? fetched?.overview
-        let credit = own != nil ? "Synopsis et affiche : TMDB"
+        let synopsis = own != nil ? "Synopsis et affiche : TMDB"
             : fetched?.source == .tmdb ? "Synopsis : TMDB" : "Synopsis : 5heures.be"
+        // JustWatch, where TMDB's "where to watch" comes from, asks to be named wherever it's shown.
+        let credit = model.streaming[work.id] == nil ? synopsis : synopsis + " · Plateformes : JustWatch"
         return VStack(alignment: .leading, spacing: 10) {
             if let overview {
                 Text(overview)
@@ -126,6 +132,46 @@ struct WorkPage: View {
             }
             .buttonStyle(.borderedProminent).tint(brandOrange).controlSize(.large)
             .padding(.top, 8)
+        }
+    }
+}
+
+/// "Sur Netflix, Prime Video" with the services' small logos, under the title's facts: one quiet line,
+/// a link to TMDB's page for the title, which leads on to each service.
+private struct StreamingLine: View {
+    let streaming: Streaming
+
+    var body: some View {
+        let names = streaming.services.map(\.name)
+        let lead = switch streaming.kind {
+        case .subscription: "Sur"
+        case .free: "Gratuit sur"
+        case .rent: "À louer sur"
+        }
+        let line = HStack(spacing: 6) {
+            HStack(spacing: 3) {
+                ForEach(streaming.services, id: \.name) { service in
+                    RemoteImage(url: service.logoURL, pixels: 60) { image in
+                        if let image { Image(platformImage: image).resizable().scaledToFill() } else { Color.secondary.opacity(0.15) }
+                    }
+                    .frame(width: 18, height: 18)
+                    .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+                }
+            }
+            Text("\(lead) \(names.joined(separator: ", "))")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(lead) \(names.count > 1 ? names.dropLast().joined(separator: ", ") + " et " + names.last! : names.joined())")
+        if let link = streaming.link {
+            Link(destination: link) { line }
+                .buttonStyle(.plain)
+                .tooltip("Où le regarder (TMDB, données JustWatch)")
+                .accessibilityAddTraits(.isLink)
+        } else {
+            line
         }
     }
 }

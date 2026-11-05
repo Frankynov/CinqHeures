@@ -15,10 +15,20 @@ struct CinqHeuresiOSApp: App {
         UISegmentedControl.appearance().apportionsSegmentWidthsByContent = true
     }
 
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some Scene {
         WindowGroup {
             MainWindow(model: model)
                 .task { await model.start() }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { EpisodeAlerts.scheduleRefresh() }
+        }
+        // New Dayez and Quelque part episodes while the app is closed (see EpisodeAlerts).
+        .backgroundTask(.appRefresh(EpisodeAlerts.refreshTask)) {
+            await EpisodeAlerts.scheduleRefresh()
+            await model.backgroundRefresh()
         }
     }
 }

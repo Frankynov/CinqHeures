@@ -69,6 +69,7 @@ extension SiteClient {
 extension TMDBClient {
     struct SeriesPage: Decodable {
         struct Result: Decodable {
+            let id: Int
             let name: String
             let original_name: String
             let first_air_date: String?

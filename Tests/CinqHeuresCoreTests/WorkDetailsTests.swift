@@ -20,9 +20,9 @@ import Testing
 
     @Test func aSeriesIsTheOneOfThatNameAlreadyOnTheAir() {
         let page = TMDBClient.SeriesPage(results: [
-            .init(name: "The Survivors", original_name: "The Survivors", first_air_date: "2030-01-01", overview: "Pas encore.", popularity: 90),
-            .init(name: "Les Survivants", original_name: "The Survivors", first_air_date: "2025-06-06", overview: "Un drame en Tasmanie.", popularity: 20),
-            .init(name: "Survivors", original_name: "Survivors", first_air_date: "2008-11-23", overview: "Une épidémie.", popularity: 50),
+            .init(id: 1, name: "The Survivors", original_name: "The Survivors", first_air_date: "2030-01-01", overview: "Pas encore.", popularity: 90),
+            .init(id: 2, name: "Les Survivants", original_name: "The Survivors", first_air_date: "2025-06-06", overview: "Un drame en Tasmanie.", popularity: 20),
+            .init(id: 3, name: "Survivors", original_name: "Survivors", first_air_date: "2008-11-23", overview: "Une épidémie.", popularity: 50),
         ])
         let date = EpisodeDates.short.date(from: "20/06/2025")!
         #expect(TMDBClient.series(in: page, titled: "The Survivors", discussedOn: date)
