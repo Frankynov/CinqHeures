@@ -9,7 +9,14 @@ struct EpisodePage: View {
 
     var body: some View {
         if let episode = model.episode(id: id) {
-            EpisodeContent(episode: episode, model: model, highlighted: highlight)
+            Group {
+                #if os(tvOS)
+                // tvOS/App: the artwork beside the title, and the programme as a row of posters.
+                TVEpisodeContent(episode: episode, model: model, highlighted: highlight)
+                #else
+                EpisodeContent(episode: episode, model: model, highlighted: highlight)
+                #endif
+            }
                 .task(id: episode.id) {
                     model.warm(episode, at: episode.segments.first { $0.id == highlight } ?? episode.subjects.first)
                 }

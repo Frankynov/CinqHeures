@@ -112,6 +112,10 @@ plus `tvOS/App/`, which holds what only the TV has:
 - `TVPlayer`: the full-screen player. Playing anything brings it up, like the Podcasts app. The film
   is big on the left; the progress bar has its film marks; ⏮ −15 ⏯ +15 ⏭, favourite, speed and the
   episode's page sit underneath; the episode's programme is a row of posters to jump between.
+- `TVEpisodeContent`: the episode page. The artwork is big beside the title, buttons and summary (a
+  long summary is cut, and a click shows all of it); the programme is a row of posters
+  (`TVSegmentCard`, shared with the player). A poster opens its film, series or person, as posters do
+  everywhere; a long press plays from it. The iPad's column of rows left most of the width empty.
 - The icon and Top Shelf images, drawn by `Tools/make_tv_icon.py` from the logo in `make_icon.py`.
   tvOS takes no Icon Composer document: its icon is a 5:3 stack of three layers (gradient, bubble,
   lettering) that the TV moves apart as the focus rests on it.
@@ -130,7 +134,10 @@ plus `tvOS/App/`, which holds what only the TV has:
 - `tvFocusSection` lets the focus enter a shelf from anywhere above it.
 - `pageTitle` leaves out the navigation title: tvOS draws it over the page, fixed as the page scrolls
   under it. Pages show their title themselves there (`TVPageHeader`, or the film's or episode's own).
-- `orangeButtonLabel` makes an orange button's label black: focused, the button turns white.
+- `orangeButtonLabel` makes an orange button's label black: focused, the button turns white. For
+  the same reason the heart buttons aren't tinted: only the heart is pink.
+- A film page with a single passage drops that row's *Écouter*, which did what *Écouter la critique*
+  above it does.
 - `pageSubtitle`, `selectableText`, `pointerHover` and `hiddenRowSeparator` do nothing
   on the TV.
 

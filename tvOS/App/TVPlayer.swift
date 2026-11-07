@@ -160,9 +160,8 @@ struct TVPlayer: View {
             ScrollView(.horizontal) {
                 LazyHStack(alignment: .top, spacing: 40) {
                     ForEach(episode.subjects) { subject in
-                        ProgrammeCard(segment: subject, isCurrent: subject.id == player.currentSegmentID) {
-                            model.play(episode, from: subject)
-                        }
+                        TVSegmentCard(segment: subject, isCurrent: subject.id == player.currentSegmentID,
+                                      action: { model.play(episode, from: subject) }, hint: "Écouter à partir de ce passage")
                     }
                 }
                 .padding(.vertical, 20)
@@ -186,43 +185,6 @@ struct TVPlayer: View {
         .ignoresSafeArea()
         .accessibilityHidden(true)
         .animation(.easeInOut(duration: 0.5), value: segment?.id)
-    }
-}
-
-/// One film of the programme: its poster lifts when the focus is on it.
-private struct ProgrammeCard: View {
-    let segment: Segment
-    let isCurrent: Bool
-    let play: () -> Void
-
-    var body: some View {
-        Button(action: play) {
-            VStack(alignment: .leading, spacing: 12) {
-                PosterImage(url: segment.posterURL, pixels: 400, corner: 12)
-                    .frame(width: 190)
-                    .overlay(alignment: .bottomTrailing) {
-                        if isCurrent {
-                            Image(systemName: "waveform")
-                                .font(.title3.weight(.bold)).foregroundStyle(.white)
-                                .padding(10).background(brandOrange, in: Circle()).padding(10)
-                        }
-                    }
-                    .hoverEffect(.highlight)
-                Text(segment.displayTitle)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(isCurrent ? brandOrange : .primary)
-                    .lineLimit(2)
-                if let start = segment.start {
-                    Text(clock(start)).font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
-                }
-            }
-            .frame(width: 190, alignment: .leading)
-        }
-        .buttonStyle(.borderless)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Spoken.join([segment.displayTitle, isCurrent ? "en cours" : nil,
-                                         segment.start.map { "à \(Spoken.duration($0))" }]))
-        .accessibilityHint("Écouter à partir de ce passage")
     }
 }
 

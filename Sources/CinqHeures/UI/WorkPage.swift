@@ -49,7 +49,12 @@ struct WorkPage: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Text(work.mentions.count > 1 ? "Les passages" : "Le passage").font(.title2.weight(.bold))
                             .accessibilityAddTraits(.isHeader)
-                        ForEach(work.mentions) { mention in PassageRow(mention: mention, model: model, compact: compact) }
+                        // On the TV, a single passage's own play button did what "Écouter la critique"
+                        // just above does: the row keeps only the episode's button.
+                        ForEach(work.mentions) { mention in
+                            PassageRow(mention: mention, model: model, compact: compact,
+                                       showsPlay: tvScale == 1 || work.mentions.count > 1)
+                        }
                     }
                     // The rows' buttons sit on the right: down from "Écouter la critique" reaches them.
                     .tvFocusSection()
@@ -188,6 +193,7 @@ private struct PassageRow: View {
     let mention: Work.Mention
     let model: AppModel
     var compact = false
+    var showsPlay = true
 
     var body: some View {
         let segment = mention.segment
@@ -223,12 +229,14 @@ private struct PassageRow: View {
                     .labelStyle(compact ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.titleAndIcon))
             }
             .buttonStyle(.bordered)
-            Button { model.play(mention.episode, from: segment) } label: {
-                Label("Écouter", systemImage: "play.fill")
-                    .labelStyle(compact ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.titleAndIcon))
-                    .orangeButtonLabel()
+            if showsPlay {
+                Button { model.play(mention.episode, from: segment) } label: {
+                    Label("Écouter", systemImage: "play.fill")
+                        .labelStyle(compact ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.titleAndIcon))
+                        .orangeButtonLabel()
+                }
+                .buttonStyle(.borderedProminent).tint(brandOrange)
             }
-            .buttonStyle(.borderedProminent).tint(brandOrange)
         }
         .padding(compact ? 10 : 12)
         .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
