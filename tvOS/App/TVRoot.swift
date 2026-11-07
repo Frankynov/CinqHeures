@@ -43,9 +43,11 @@ struct TVRoot: View {
                                                    description: Text("Un film, une série, un réalisateur, un acteur, un artiste…"))
                         }
                     }
+                    // On the search's own page, not the stack: on the stack, the field and its keyboard
+                    // stayed over the film or episode opened from a result.
+                    .searchable(text: $model.searchText, prompt: "Film, série, réalisateur, acteur…")
                     .navigationDestination(for: Route.self) { RoutePage(route: $0, model: model) }
                 }
-                .searchable(text: $model.searchText, prompt: "Film, série, réalisateur, acteur…")
             }
         }
         // The remote's play/pause button works wherever the focus is, as in the TV's own apps.

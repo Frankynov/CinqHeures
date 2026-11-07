@@ -136,6 +136,10 @@ plus `tvOS/App/`, which holds what only the TV has:
   under it. Pages show their title themselves there (`TVPageHeader`, or the film's or episode's own).
 - `orangeButtonLabel` makes an orange button's label black: focused, the button turns white. For
   the same reason the heart buttons aren't tinted: only the heart is pink.
+- The search field is on the search's first page, not on its stack: there, it and its keyboard
+  stayed over the film or episode opened from a result.
+- The player is dark in light mode too, as the TV's own players: its backdrop is the poster, blurred
+  and darkened. The rest follows the TV's appearance and was checked in both.
 - A film page with a single passage drops that row's *Écouter*, which did what *Écouter la critique*
   above it does.
 - `pageSubtitle`, `selectableText`, `pointerHover` and `hiddenRowSeparator` do nothing

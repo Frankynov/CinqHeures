@@ -311,15 +311,17 @@ private struct SeeAllCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            // Orange with a black label, like the orange buttons: orange on grey was faint in light mode.
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(.quaternary)
+                .fill(LinearGradient(colors: [Color(red: 0.98, green: 0.62, blue: 0.12), brandOrange],
+                                     startPoint: .top, endPoint: .bottom))
                 .aspectRatio(2.0 / 3.0, contentMode: .fit)
                 .overlay {
                     VStack(spacing: 14) {
                         Image(systemName: "square.grid.3x3.fill").font(.system(size: 54))
                         Text("Tout voir").font(.callout.weight(.semibold))
                     }
-                    .foregroundStyle(brandOrange)
+                    .foregroundStyle(.black)
                 }
                 .focusLift()
         }

@@ -44,6 +44,8 @@ struct TVPlayer: View {
         }
         .scrollClipDisabled()
         .background { backdrop(segment: segment) }
+        // Dark in light mode too, as the TV's own players: the backdrop is the poster, blurred and darkened.
+        .environment(\.colorScheme, .dark)
         .modifier(PlaybackAnnouncements(player: player))
     }
 

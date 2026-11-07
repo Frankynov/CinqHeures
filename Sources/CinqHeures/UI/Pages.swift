@@ -432,7 +432,8 @@ struct SearchPage: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            .frame(maxWidth: 420)
+            // Wider on the TV: its segments are as wide as the widest, and 420 points cut "Personnalités".
+            .frame(maxWidth: tvScale > 1 ? 1000 : 420)
             .padding(14)
 
             if results.isEmpty {
