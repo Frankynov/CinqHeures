@@ -109,8 +109,55 @@ private struct PagePadding: ViewModifier {
     }
 }
 
+#if os(tvOS)
+/// A page's title and the line under it, at the top of the page on the TV, with the page's buttons on
+/// the right. The TV draws a navigation title over the page, fixed while the page scrolls under it.
+struct TVPageHeader<Controls: View>: View {
+    let title: String
+    let subtitle: String
+    @ViewBuilder var controls: Controls
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 30) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title).font(.title2.weight(.bold)).lineLimit(1)
+                    .accessibilityAddTraits(.isHeader)
+                Text(subtitle).font(.callout).foregroundStyle(.secondary).lineLimit(1)
+            }
+            Spacer(minLength: 40)
+            controls
+        }
+        .focusSection()
+    }
+}
+
+extension TVPageHeader where Controls == EmptyView {
+    init(title: String, subtitle: String) { self.init(title: title, subtitle: subtitle) { EmptyView() } }
+}
+#endif
+
 /// What the Mac and the iPad have and the Apple TV doesn't: nothing happens there.
 extension View {
+    /// The page's title in the bar. Not on the TV, where it stays put over the page as it scrolls:
+    /// the pages show their title themselves there (`TVPageHeader`, or the film's or episode's own).
+    @ViewBuilder func pageTitle(_ text: String) -> some View {
+        #if os(tvOS)
+        self
+        #else
+        navigationTitle(text)
+        #endif
+    }
+
+    /// The label of an orange button. Black on the TV: a focused button turns white there, and the
+    /// orange label it then got hardly showed on it.
+    @ViewBuilder func orangeButtonLabel() -> some View {
+        #if os(tvOS)
+        foregroundStyle(.black)
+        #else
+        self
+        #endif
+    }
+
     /// The line under a page's title.
     @ViewBuilder func pageSubtitle(_ text: String) -> some View {
         #if os(tvOS)

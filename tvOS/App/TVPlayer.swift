@@ -177,7 +177,8 @@ struct TVPlayer: View {
         RemoteImage(url: segment?.posterURL, pixels: 300) { image in
             if let image {
                 Image(platformImage: image).resizable().scaledToFill().blur(radius: 60).scaleEffect(1.2)
-                    .overlay(Color.black.opacity(0.55))
+                    // Dark enough for the grey text over a pale poster.
+                    .overlay(Color.black.opacity(0.75))
             } else {
                 Color.clear
             }

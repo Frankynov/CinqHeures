@@ -13,7 +13,7 @@ struct EpisodePage: View {
                 .task(id: episode.id) {
                     model.warm(episode, at: episode.segments.first { $0.id == highlight } ?? episode.subjects.first)
                 }
-                .navigationTitle(episode.title)
+                .pageTitle(episode.title)
                 .pageSubtitle(EpisodeDates.long.string(from: episode.date))
                 #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
@@ -39,9 +39,10 @@ private struct EpisodeContent: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     VStack(alignment: .leading, spacing: 12) {
-                        if episode.artwork != nil {
+                        // Always on the TV, where the title isn't in a bar above the page.
+                        if episode.artwork != nil || tvScale > 1 {
                             HStack(alignment: .top, spacing: 14) {
-                                Artwork(url: episode.artwork, side: 110 * tvScale)
+                                if episode.artwork != nil { Artwork(url: episode.artwork, side: 110 * tvScale) }
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(episode.title).font(.title3.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
                                     if let host = episode.series.host {
@@ -129,6 +130,7 @@ private struct EpisodeContent: View {
             Label(isCurrent ? "Reprendre" : player.hasProgress(episode) ? "Reprendre l'épisode" : "Écouter l'épisode",
                   systemImage: "play.fill")
                 .frame(maxWidth: fullWidth ? .infinity : nil)
+                .orangeButtonLabel()
         }
         .buttonStyle(.borderedProminent).tint(brandOrange)
     }

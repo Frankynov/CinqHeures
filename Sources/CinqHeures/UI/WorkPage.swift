@@ -63,7 +63,7 @@ struct WorkPage: View {
             // show its old entry (no slug yet) until the index is rebuilt.
             .task(id: WorkDetails.key(for: work)) { model.lookUpDetails(of: work) }
             .task(id: work.id) { model.lookUpStreaming(of: work) }
-            .navigationTitle(segment.displayTitle)
+            .pageTitle(segment.displayTitle)
             .pageSubtitle(kind.label)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
@@ -131,6 +131,7 @@ struct WorkPage: View {
                 Label("Écouter la critique", systemImage: "play.fill")
                     .padding(.horizontal, 6)
                     .frame(maxWidth: compact ? .infinity : nil)
+                    .orangeButtonLabel()
             }
             .buttonStyle(.borderedProminent).tint(brandOrange).controlSize(.large)
             .padding(.top, 8)
@@ -225,6 +226,7 @@ private struct PassageRow: View {
             Button { model.play(mention.episode, from: segment) } label: {
                 Label("Écouter", systemImage: "play.fill")
                     .labelStyle(compact ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.titleAndIcon))
+                    .orangeButtonLabel()
             }
             .buttonStyle(.borderedProminent).tint(brandOrange)
         }

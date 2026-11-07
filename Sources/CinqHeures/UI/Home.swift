@@ -132,7 +132,9 @@ struct HeroView: View {
                     Rectangle().fill(Color(red: 0.05, green: 0.2, blue: 0.43))
                 }
             }
-            .overlay(LinearGradient(colors: [.black.opacity(0.72), .black.opacity(0.35)], startPoint: .leading, endPoint: .trailing))
+            // Darker on the TV, whose wider text ran over the lighter right of a pale poster (Stan & Ollie).
+            .overlay(LinearGradient(colors: [.black.opacity(tvScale > 1 ? 0.8 : 0.72), .black.opacity(tvScale > 1 ? 0.6 : 0.35)],
+                                    startPoint: .leading, endPoint: .trailing))
             .accessibilityHidden(true)
         }
         .task(id: mention.segment.id) { model.warm(mention.episode, at: mention.segment) }
@@ -191,6 +193,7 @@ struct HeroView: View {
         return HStack(spacing: 10) {
             Button { model.play(mention.episode, from: segment) } label: {
                 Label(shortPlay ? "Écouter" : "Écouter la critique", systemImage: "play.fill").fixedSize()
+                    .orangeButtonLabel()
             }
             .buttonStyle(.borderedProminent).tint(brandOrange).controlSize(.large)
             Button { model.open(.work(segment.kind, segment.title)) } label: {

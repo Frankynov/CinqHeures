@@ -120,17 +120,22 @@ plus `tvOS/App/`, which holds what only the TV has:
 - Play/pause works anywhere.
 - With the focus on the progress bar, ← and → go back or forward 15 s, and a click pauses.
 - A long press on a poster offers *Écouter la critique*, the pointer's play button.
+- Back closes the tab's page even with the focus up in the tab bar (`TVRoot`). There, tvOS would
+  leave the app and keep the page, and the app reopened on it with no way home.
 
 **The shared pages** adapt through helpers in `Platform.swift`:
 - `tvScale` (1.75 on the TV, 1 elsewhere) multiplies fixed sizes: posters, tiles, artwork.
 - `cardAction` turns a card into a focusable button there; `focusLift` makes its poster lift.
 - `rowAction` does the same for a row's main part.
 - `tvFocusSection` lets the focus enter a shelf from anywhere above it.
+- `pageTitle` leaves out the navigation title: tvOS draws it over the page, fixed as the page scrolls
+  under it. Pages show their title themselves there (`TVPageHeader`, or the film's or episode's own).
+- `orangeButtonLabel` makes an orange button's label black: focused, the button turns white.
 - `pageSubtitle`, `selectableText`, `pointerHover` and `hiddenRowSeparator` do nothing
   on the TV.
 
 On a shelf, *Tout voir* becomes a last card, since the focus can't reach a link above the row. The
-listing and show pages' layout and sort buttons head the page instead of sitting in the bar: there,
+listing and show pages' layout and sort buttons sit beside the page's title instead of in the bar: there,
 tvOS cut their titles to an ellipsis and the menu didn't open.
 
 **Left out on the TV:** Spotlight (no CoreSpotlight on tvOS), notifications, the icon's shortcuts, the
