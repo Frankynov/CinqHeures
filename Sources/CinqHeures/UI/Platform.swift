@@ -82,12 +82,108 @@ extension View {
     func pagePadding(_ edges: Edge.Set = .all) -> some View { modifier(PagePadding(edges: edges)) }
 }
 
+/// A page's side margin: 28 points on the Mac and the iPad, 16 on an iPhone, none on a TV, whose safe
+/// area already keeps everything clear of the screen's edges.
+func sideMargin(_ sizeClass: UserInterfaceSizeClass?) -> CGFloat {
+    #if os(tvOS)
+    0
+    #else
+    sizeClass == .compact ? 16 : 28
+    #endif
+}
+
+/// How much bigger fixed sizes (posters, tiles, artwork) are drawn on a TV, seen from the sofa. The
+/// system already makes its fonts bigger there.
+#if os(tvOS)
+let tvScale: CGFloat = 1.75
+#else
+let tvScale: CGFloat = 1
+#endif
+
 private struct PagePadding: ViewModifier {
     let edges: Edge.Set
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     func body(content: Content) -> some View {
-        content.padding(edges, sizeClass == .compact ? 16 : 28)
+        content.padding(edges, sideMargin(sizeClass))
+    }
+}
+
+/// What the Mac and the iPad have and the Apple TV doesn't: nothing happens there.
+extension View {
+    /// The line under a page's title.
+    @ViewBuilder func pageSubtitle(_ text: String) -> some View {
+        #if os(tvOS)
+        self
+        #else
+        navigationSubtitle(text)
+        #endif
+    }
+
+    /// Text that can be selected and copied.
+    @ViewBuilder func selectableText() -> some View {
+        #if os(tvOS)
+        self
+        #else
+        textSelection(.enabled)
+        #endif
+    }
+
+    /// The pointer coming over the view and leaving it (the TV has focus instead).
+    @ViewBuilder func pointerHover(_ action: @escaping (Bool) -> Void) -> some View {
+        #if os(tvOS)
+        self
+        #else
+        onHover(perform: action)
+        #endif
+    }
+
+    /// A card that opens something: clicked or tapped on the Mac and iPhone/iPad (where the pointer
+    /// shows a play button over it); on the TV a button the focus can rest on, whose picture lifts.
+    @ViewBuilder func cardAction(_ action: @escaping () -> Void) -> some View {
+        #if os(tvOS)
+        Button(action: action) { self }.buttonStyle(.borderless)
+        #else
+        contentShape(Rectangle()).onTapGesture(perform: action)
+        #endif
+    }
+
+    /// A row's main part that opens something: clicked or tapped elsewhere, a button the focus can rest
+    /// on (the TV's own platter) on the TV.
+    @ViewBuilder func rowAction(_ action: @escaping () -> Void) -> some View {
+        #if os(tvOS)
+        Button(action: action) { self }
+        #else
+        contentShape(Rectangle()).onTapGesture(perform: action)
+        #endif
+    }
+
+    /// A row the TV's focus enters from anywhere above or below it, not only from what's straight
+    /// above: down from the hero's right-hand button reaches a shelf of two cards on the left.
+    @ViewBuilder func tvFocusSection() -> some View {
+        #if os(tvOS)
+        focusSection()
+        #else
+        self
+        #endif
+    }
+
+    /// The picture of a card, lifted and lit under the TV's focus (nothing elsewhere).
+    @ViewBuilder func focusLift() -> some View {
+        #if os(tvOS)
+        hoverEffect(.highlight)
+        #else
+        self
+        #endif
+    }
+
+    /// No line under a list row.
+    @ViewBuilder func hiddenRowSeparator() -> some View {
+        #if os(tvOS)
+        self
+        #else
+        listRowSeparator(.hidden)
+        #endif
     }
 }
 

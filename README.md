@@ -54,6 +54,9 @@ hasard, reprendre l'écoute, les dernières critiques d'Hugues Dayez, rechercher
 
 **Prévenu des nouveautés.** Une notification à chaque nouvel épisode de Dayez ou de *Quelque part*.
 
+**Sur grand écran.** Une version Apple TV reprend l'accueil, les émissions et la recherche en grand,
+avec un lecteur plein écran qui se pilote à la télécommande.
+
 **Pour tous.** VoiceOver lit chaque film, note et minute en toutes lettres ; l'app suit la taille du
 texte et le contraste renforcé.
 

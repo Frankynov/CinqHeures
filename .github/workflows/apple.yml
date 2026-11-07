@@ -1,4 +1,4 @@
-# Builds the Mac app and the iPhone/iPad app on GitHub's macOS runners and runs the core tests, on
+# Builds the Mac app, the iPhone/iPad app and the Apple TV app on GitHub's macOS runners and runs the core tests, on
 # every push. Run it by hand (Actions › Apple builds › Run workflow) to also launch both apps and
 # record their CPU and memory, with screenshots, kept as the run's artifacts (see Tools/ci/).
 name: Apple builds
@@ -70,6 +70,16 @@ jobs:
           xcodebuild -project iOS/CinqHeures.xcodeproj -scheme 5heures -configuration Release \
             -destination 'generic/platform=iOS Simulator' -derivedDataPath build/ios \
             CODE_SIGNING_ALLOWED=NO -quiet build
+      - name: Build the Apple TV app for the simulator
+        # The tvOS platform is an optional Xcode download: skipped when the runner doesn't have it.
+        run: |
+          if xcodebuild -showsdks | grep -q appletvsimulator; then
+            xcodebuild -project iOS/CinqHeures.xcodeproj -scheme "5heures TV" -configuration Release \
+              -destination 'generic/platform=tvOS Simulator' -derivedDataPath build/tvos \
+              CODE_SIGNING_ALLOWED=NO -quiet build
+          else
+            echo "No tvOS SDK on this runner: Apple TV build skipped."
+          fi
       - name: Launch it on an iPhone and an iPad, record CPU and memory
         if: github.event_name == 'workflow_dispatch' && inputs.measure != 'mac'
         env:

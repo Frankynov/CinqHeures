@@ -14,7 +14,7 @@ struct EpisodePage: View {
                     model.warm(episode, at: episode.segments.first { $0.id == highlight } ?? episode.subjects.first)
                 }
                 .navigationTitle(episode.title)
-                .navigationSubtitle(EpisodeDates.long.string(from: episode.date))
+                .pageSubtitle(EpisodeDates.long.string(from: episode.date))
                 #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
                 #endif
@@ -41,7 +41,7 @@ private struct EpisodeContent: View {
                     VStack(alignment: .leading, spacing: 12) {
                         if episode.artwork != nil {
                             HStack(alignment: .top, spacing: 14) {
-                                Artwork(url: episode.artwork, side: 110)
+                                Artwork(url: episode.artwork, side: 110 * tvScale)
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(episode.title).font(.title3.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
                                     if let host = episode.series.host {
@@ -80,7 +80,7 @@ private struct EpisodeContent: View {
                             Text(episode.summary)
                                 .font(.callout)
                                 .foregroundStyle(.secondary)
-                                .textSelection(.enabled)
+                                .selectableText()
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
@@ -93,7 +93,7 @@ private struct EpisodeContent: View {
                                 .accessibilityAddTraits(.isHeader)
                                 .padding(.bottom, 10)
                             ForEach(Array(episode.segments.enumerated()), id: \.element.id) { index, segment in
-                                if index > 0 { Divider().padding(.leading, episode.segments.contains { $0.start != nil } ? 98 : 46) }
+                                if index > 0 { Divider().padding(.leading, (episode.segments.contains { $0.start != nil } ? 98 : 46) * tvScale) }
                                 SegmentRow(segment: segment, episode: episode, model: model,
                                            isHighlighted: segment.id == highlighted,
                                            isPlaying: isCurrent && player.currentSegmentID == segment.id)
@@ -159,14 +159,14 @@ private struct SegmentRow: View {
                 Text(segment.start.map(clock) ?? "–")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
-                    .frame(width: 52, alignment: .trailing)
+                    .frame(width: 52 * tvScale, alignment: .trailing)
             }
             if isSubject {
-                Poster(url: segment.posterURL, width: 26)
+                Poster(url: segment.posterURL, width: 26 * tvScale)
             } else {
                 Image(systemName: segment.kind.symbol)
                     .foregroundStyle(.tertiary)
-                    .frame(width: 26)
+                    .frame(width: 26 * tvScale)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(segment.title)
@@ -188,8 +188,8 @@ private struct SegmentRow: View {
             // The whole block, up to the buttons, opens the film, series or person, as a row does
             // everywhere else: the title's own words were a small target, with a finger above all.
             .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
-            .onTapGesture { if isSubject { model.open(.work(segment.kind, segment.title)) } }
+            // On the TV an aside's row plays it: a row the focus lands on should do something.
+            .rowAction { if isSubject { model.open(.work(segment.kind, segment.title)) } else if tvScale > 1 { model.play(episode, from: segment) } }
             .help(isSubject ? "Voir la page de ce titre" : "")
             .accessibilityAddTraits(isSubject ? .isButton : [])
             if isPlaying {

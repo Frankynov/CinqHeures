@@ -100,6 +100,49 @@ route notifications in a loop, a third of a core and more on an idle iPad.
 cd iOS && xcodebuild -scheme 5heures -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17' build
 ```
 
+## Apple TV
+
+The same Xcode project has a **5heures TV** target (tvOS 26): the shared screens and engine again,
+plus `tvOS/App/`, which holds what only the TV has:
+
+- `TVRoot`: tabs along the top, *Accueil*, *Émissions*, *En écoute* (while something plays) and the
+  search. Each tab pushes its own pages, the iPad's (`model.phoneTab`, as on iPhone).
+- `TVShowsPage`: the iPad's sidebar as big coloured tiles, in full rows of four (shows) and six (scores).
+  The focus doesn't go down from a column with nothing under it.
+- `TVPlayer`: the full-screen player. Playing anything brings it up, like the Podcasts app. The film
+  is big on the left; the progress bar has its film marks; ⏮ −15 ⏯ +15 ⏭, favourite, speed and the
+  episode's page sit underneath; the episode's programme is a row of posters to jump between.
+- The icon and Top Shelf images, drawn by `Tools/make_tv_icon.py` from the logo in `make_icon.py`.
+  tvOS takes no Icon Composer document: its icon is a 5:3 stack of three layers (gradient, bubble,
+  lettering) that the TV moves apart as the focus rests on it.
+
+**The remote.**
+- Play/pause works anywhere.
+- With the focus on the progress bar, ← and → go back or forward 15 s, and a click pauses.
+- A long press on a poster offers *Écouter la critique*, the pointer's play button.
+
+**The shared pages** adapt through helpers in `Platform.swift`:
+- `tvScale` (1.75 on the TV, 1 elsewhere) multiplies fixed sizes: posters, tiles, artwork.
+- `cardAction` turns a card into a focusable button there; `focusLift` makes its poster lift.
+- `rowAction` does the same for a row's main part.
+- `tvFocusSection` lets the focus enter a shelf from anywhere above it.
+- `pageSubtitle`, `selectableText`, `pointerHover` and `hiddenRowSeparator` do nothing
+  on the TV.
+
+On a shelf, *Tout voir* becomes a last card, since the focus can't reach a link above the row. The
+listing and show pages' layout and sort buttons head the page instead of sitting in the bar: there,
+tvOS cut their titles to an ellipsis and the menu didn't open.
+
+**Left out on the TV:** Spotlight (no CoreSpotlight on tvOS), notifications, the icon's shortcuts, the
+floating bar and links to TMDB (there's no browser).
+
+```
+cd iOS && xcodebuild -scheme "5heures TV" -destination 'platform=tvOS Simulator,name=Apple TV 4K (4th generation)' build
+```
+
+To run it on an Apple TV, pair it with Xcode (Devices and Simulators), pick the *5heures TV* scheme
+and run. The free personal team works, as for the iPhone.
+
 ## Build
 
 macOS 15+, Swift 6, Command Line Tools only (no Xcode).
@@ -112,7 +155,7 @@ macOS 15+, Swift 6, Command Line Tools only (no Xcode).
 ```
 
 GitHub Actions (`.github/workflows/apple.yml`, macOS runners with Xcode) builds the Mac app, runs the
-core tests and builds the iPhone/iPad app for the simulator on every push. Run it by hand (Actions ›
+core tests and builds the iPhone/iPad and Apple TV apps for the simulator on every push. Run it by hand (Actions ›
 Apple builds › Run workflow) and it also launches the Mac app (a first launch, then a warm one) and
 the app on an iPhone and an iPad simulator (or only some of them, see the run's options), records CPU
 and memory every two seconds, samples the call stacks at a few moments (busiest frames, and the call

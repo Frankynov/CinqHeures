@@ -1,5 +1,14 @@
 import CinqHeuresCore
 import Foundation
+#if os(tvOS)
+/// The Apple TV has no notifications to show: nothing to set up or announce.
+@MainActor
+final class EpisodeAlerts {
+    static let shared = EpisodeAlerts()
+    func setUp(open: @escaping (Int) -> Void) {}
+    func announce(newIn catalogue: Catalogue) {}
+}
+#else
 import UserNotifications
 #if os(iOS)
 import BackgroundTasks
@@ -80,3 +89,4 @@ final class EpisodeAlerts: NSObject, UNUserNotificationCenterDelegate {
     }
     #endif
 }
+#endif

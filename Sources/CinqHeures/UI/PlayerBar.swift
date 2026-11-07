@@ -1,6 +1,12 @@
 import CinqHeuresCore
 import SwiftUI
 
+#if os(tvOS)
+/// No floating bar on the TV: its player is a tab of its own (TVPlayer), so pages keep no room for one.
+enum PlayerBar {
+    static let reservedHeight: CGFloat = 0
+}
+#else
 /// The player: one compact row of Liquid Glass floating over the bottom of the content. Artwork and
 /// title, the transport, the scrubber (with a mark at each film of the episode), volume and speed.
 struct PlayerBar: View {
@@ -261,6 +267,8 @@ struct PlayerBar: View {
 /// The now-playing block as VoiceOver reads it: one button, "En lecture : Pfau, 3 étoiles sur 4,
 /// Podcast, vendredi 27 juin 2025", that opens the episode (the full player on iPhone). While a file
 /// fails or the server is slow, its parts stay apart so "Réessayer" and "Pourquoi ?" can be reached.
+#endif
+
 struct NowPlayingAccessibility: ViewModifier {
     let player: PlayerModel
     let opensPlayer: Bool
@@ -338,6 +346,7 @@ struct PassageButton: View {
     }
 }
 
+#if !os(tvOS)
 /// Under the bar's title: the show and the date and, on iPhone and iPad, the score of the film being
 /// discussed, when there's room for it.
 private struct InfoLine: View {
@@ -743,6 +752,8 @@ private struct SlowServerExplanation: View {
         .frame(width: 360)
     }
 }
+
+#endif
 
 #if os(iOS)
 /// iPhone's full-screen player: what's playing, big, with the controls under a thumb.

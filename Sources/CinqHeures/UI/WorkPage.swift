@@ -36,7 +36,7 @@ struct WorkPage: View {
                     } else {
                         HStack(alignment: .top, spacing: 28) {
                             PosterImage(url: work.posterURL, corner: 12)
-                                .frame(width: 210)
+                                .frame(width: 210 * tvScale)
                                 .shadow(color: .black.opacity(0.3), radius: 14, y: 8)
                             VStack(alignment: .leading, spacing: 10) {
                                 titleBlock(work: work, segment: segment)
@@ -51,6 +51,8 @@ struct WorkPage: View {
                             .accessibilityAddTraits(.isHeader)
                         ForEach(work.mentions) { mention in PassageRow(mention: mention, model: model, compact: compact) }
                     }
+                    // The rows' buttons sit on the right: down from "Écouter la critique" reaches them.
+                    .tvFocusSection()
                 }
                 .padding(compact ? 16 : 28)
             }
@@ -62,7 +64,7 @@ struct WorkPage: View {
             .task(id: WorkDetails.key(for: work)) { model.lookUpDetails(of: work) }
             .task(id: work.id) { model.lookUpStreaming(of: work) }
             .navigationTitle(segment.displayTitle)
-            .navigationSubtitle(kind.label)
+            .pageSubtitle(kind.label)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -118,9 +120,9 @@ struct WorkPage: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .lineLimit(compact ? 8 : 6)
-                    .frame(maxWidth: 620, alignment: .leading)
+                    .frame(maxWidth: 620 * tvScale, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
-                    .textSelection(.enabled)
+                    .selectableText()
                 Text(credit).font(.caption2).foregroundStyle(.tertiary)
             }
             Button {
@@ -154,7 +156,7 @@ private struct StreamingLine: View {
                     RemoteImage(url: service.logoURL, pixels: 60) { image in
                         if let image { Image(platformImage: image).resizable().scaledToFill() } else { Color.secondary.opacity(0.15) }
                     }
-                    .frame(width: 18, height: 18)
+                    .frame(width: 18 * tvScale, height: 18 * tvScale)
                     .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
                 }
             }
@@ -165,6 +167,10 @@ private struct StreamingLine: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(lead) \(names.count > 1 ? names.dropLast().joined(separator: ", ") + " et " + names.last! : names.joined())")
+        #if os(tvOS)
+        // A TV has no browser to open TMDB's page in.
+        line
+        #else
         if let link = streaming.link {
             Link(destination: link) { line }
                 .buttonStyle(.plain)
@@ -173,6 +179,7 @@ private struct StreamingLine: View {
         } else {
             line
         }
+        #endif
     }
 }
 
@@ -184,7 +191,7 @@ private struct PassageRow: View {
     var body: some View {
         let segment = mention.segment
         HStack(spacing: compact ? 10 : 14) {
-            EpisodeArt(episode: mention.episode, side: compact ? 44 : 52)
+            EpisodeArt(episode: mention.episode, side: (compact ? 44 : 52) * tvScale)
             VStack(alignment: .leading, spacing: 4) {
                 if compact {
                     Text(EpisodeDates.short.string(from: mention.episode.date)).font(.headline)

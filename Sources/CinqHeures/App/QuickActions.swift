@@ -1,13 +1,13 @@
 import CinqHeuresCore
 import Foundation
-#if os(iOS)
-import UIKit
-#else
+#if os(macOS)
 import AppKit
+#else
+import UIKit
 #endif
 
 /// The shortcuts in the app icon's menu: a long press on the home screen (iPhone, iPad), a right click
-/// on the Dock icon (Mac). Four at most, iOS's limit.
+/// on the Dock icon (Mac). Four at most, iOS's limit. The Apple TV has no such menu.
 enum QuickAction: String, CaseIterable {
     /// A well-rated review picked at random, played from its first word, with its film's page.
     case surprise
@@ -117,7 +117,7 @@ extension AppModel {
         }
     }
 }
-#else
+#elseif os(macOS)
 /// The Dock icon's menu, built when it's opened.
 final class MacAppDelegate: NSObject, NSApplicationDelegate {
     @MainActor func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {

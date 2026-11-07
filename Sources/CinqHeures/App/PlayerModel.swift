@@ -240,7 +240,7 @@ final class PlayerModel {
     /// iPhone and iPad: the app takes over the audio (pausing another app's music or podcast) only
     /// when it's asked to play, not as soon as it's opened.
     private func activateAudioSession() {
-        #if os(iOS)
+        #if !os(macOS)
         guard (try? AVAudioSession.sharedInstance().setActive(true)) != nil else { return }
         if !audioSessionActive { audioSessionActive = true }
         #endif

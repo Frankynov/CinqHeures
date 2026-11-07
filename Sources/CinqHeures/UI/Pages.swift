@@ -1,7 +1,12 @@
 import CinqHeuresCore
 import SwiftUI
 
+#if os(tvOS)
+/// Six posters a row across a TV, with room for each to lift under the focus.
+private let gridColumns = [GridItem(.adaptive(minimum: 230, maximum: 290), spacing: 48, alignment: .top)]
+#else
 private let gridColumns = [GridItem(.adaptive(minimum: 150, maximum: 190), spacing: 22, alignment: .top)]
+#endif
 /// For a narrow column, where 150 points left room for one poster a row.
 private let narrowGridColumns = [GridItem(.adaptive(minimum: 120, maximum: 190), spacing: 16, alignment: .top)]
 
@@ -74,14 +79,21 @@ struct ListingPage: View {
                     // A List ignores the bottom room kept for the floating player (see ShowPage).
                     Color.clear
                         .frame(height: sizeClass == .compact ? 0 : PlayerBar.reservedHeight)
-                        .listRowSeparator(.hidden)
+                        .hiddenRowSeparator()
                         .listRowBackground(Color.clear)
                         .accessibilityHidden(true)
                 }
                 .listStyle(.plain)
+                #if os(tvOS)
+                // Above the list rather than its first row, which the TV lit up as one big row.
+                .safeAreaInset(edge: .top) { controls.padding(.bottom, 20) }
+                #endif
             } else {
                 ScrollView {
-                    LazyVGrid(columns: isWide == false ? narrowGridColumns : gridColumns, spacing: 26) {
+                    #if os(tvOS)
+                    controls.padding(.bottom, 30)
+                    #endif
+                    LazyVGrid(columns: isWide == false ? narrowGridColumns : gridColumns, spacing: 26 * tvScale) {
                         ForEach(shown) { item in ItemCard(item: item, model: model, width: nil) }
                     }
                     .pagePadding()
@@ -95,17 +107,39 @@ struct ListingPage: View {
         .navigationTitle(listing.title)
         // There from the first frame: a subtitle that arrived once the titles had loaded made iOS
         // drop the large title into the bar a moment after the page opened.
-        .navigationSubtitle("\(sorted.count) titre\(sorted.count > 1 ? "s" : "")")
+        .pageSubtitle("\(sorted.count) titre\(sorted.count > 1 ? "s" : "")")
         .task {
             guard sizeClass == .compact else { return }
             try? await Task.sleep(for: .milliseconds(50))
             slideStarted = true
         }
+        #if !os(tvOS)
         .toolbar {
             if sizeClass != .compact {
                 ToolbarItem { LayoutSwitch(layout: $layout, list: "Afficher en liste ou en grille d'affiches") }
             }
-            ToolbarItem {
+            ToolbarItem { sortMenu }
+            #if os(macOS)
+            // Room between the buttons and the search field, which follows them.
+            if #available(macOS 26, *) { ToolbarSpacer(.fixed) }
+            #endif
+        }
+        #endif
+    }
+
+    #if os(tvOS)
+    /// The TV's bar cut these buttons to an ellipsis and its menu didn't open: they head the page there.
+    private var controls: some View {
+        HStack(spacing: 30) {
+            LayoutSwitch(layout: $layout, list: "Afficher en liste ou en grille d'affiches")
+            sortMenu
+            Spacer()
+        }
+        .focusSection()
+    }
+    #endif
+
+    private var sortMenu: some View {
                 Menu {
                     // Choosing the current order again flips it, so each is a button rather than a picker.
                     ForEach(ListingOrder.allCases, id: \.self) { choice in
@@ -124,18 +158,16 @@ struct ListingPage: View {
                         }
                     }
                 } label: {
+                    #if os(tvOS)
+                    Label("Trier : \(order.title.lowercased())", systemImage: order.arrow(reversed: reversed))
+                    #else
                     Label("Trier", systemImage: "arrow.up.arrow.down")
+                    #endif
                 }
                 #if os(iOS)
                 .menuActionDismissBehavior(.disabled)
                 #endif
                 .help("Trier par date ou par nom ; choisir à nouveau inverse l'ordre")
-            }
-            #if os(macOS)
-            // Room between the buttons and the search field, which follows them.
-            if #available(macOS 26, *) { ToolbarSpacer(.fixed) }
-            #endif
-        }
     }
 }
 
@@ -231,7 +263,10 @@ struct ShowPage: View {
         if offersGrid, layout == .grid, let series {
             let films = model.items(in: .show(series), by: .date)
             ScrollView {
-                LazyVGrid(columns: isWide == false ? narrowGridColumns : gridColumns, spacing: 26) {
+                #if os(tvOS)
+                tvSwitch.padding(.bottom, 30)
+                #endif
+                LazyVGrid(columns: isWide == false ? narrowGridColumns : gridColumns, spacing: 26 * tvScale) {
                     ForEach(films) { item in ItemCard(item: item, model: model, width: nil) }
                 }
                 .pagePadding()
@@ -239,12 +274,27 @@ struct ShowPage: View {
             .onGeometryChange(for: Bool?.self) { $0.size.width > 0 ? $0.size.width >= 560 : nil } action: { isWide = $0 }
             .pageEdges()
             .navigationTitle(series.fullTitle)
-            .navigationSubtitle((series.host.map { "par \($0) · " } ?? "") + "\(films.count) titres")
+            .pageSubtitle((series.host.map { "par \($0) · " } ?? "") + "\(films.count) titres")
+            #if !os(tvOS)
             .toolbar { layoutSwitch }
+            #endif
         } else {
             list(episodes)
         }
     }
+
+    #if os(tvOS)
+    /// The TV's bar cut the switch to an ellipsis: it heads the page there.
+    @ViewBuilder private var tvSwitch: some View {
+        if offersGrid {
+            HStack {
+                LayoutSwitch(layout: $layout, list: "Afficher la liste des épisodes ou les affiches des films")
+                Spacer()
+            }
+            .focusSection()
+        }
+    }
+    #endif
 
     @ToolbarContentBuilder private var layoutSwitch: some ToolbarContent {
         if offersGrid {
@@ -274,14 +324,19 @@ struct ShowPage: View {
             }
             Color.clear
                 .frame(height: sizeClass == .compact ? 0 : PlayerBar.reservedHeight)
-                .listRowSeparator(.hidden)
+                .hiddenRowSeparator()
                 .listRowBackground(Color.clear)
                 .accessibilityHidden(true)
         }
+        #if os(tvOS)
+        .safeAreaInset(edge: .top) { tvSwitch.padding(.bottom, 20) }
+        #endif
         .pageEdges()
         .navigationTitle(series?.fullTitle ?? "Récents")
-        .navigationSubtitle((series?.host.map { "par \($0) · " } ?? "") + "\(episodes.count) épisodes")
+        .pageSubtitle((series?.host.map { "par \($0) · " } ?? "") + "\(episodes.count) épisodes")
+        #if !os(tvOS)
         .toolbar { layoutSwitch }
+        #endif
     }
 }
 
@@ -303,19 +358,20 @@ struct FavoritesPage: View {
             }
             Color.clear
                 .frame(height: sizeClass == .compact ? 0 : PlayerBar.reservedHeight)
-                .listRowSeparator(.hidden)
+                .hiddenRowSeparator()
                 .listRowBackground(Color.clear)
                 .accessibilityHidden(true)
         }
         .overlay {
             if episodes.isEmpty {
                 ContentUnavailableView("Aucun favori", systemImage: "heart",
-                                       description: Text("Touchez le cœur d'un épisode pour le retrouver ici."))
+                                       description: Text(tvScale > 1 ? "Choisissez le cœur d'un épisode pour le retrouver ici."
+                                                                     : "Touchez le cœur d'un épisode pour le retrouver ici."))
             }
         }
         .pageEdges()
         .navigationTitle("Favoris")
-        .navigationSubtitle("\(episodes.count) épisode\(episodes.count > 1 ? "s" : "")")
+        .pageSubtitle("\(episodes.count) épisode\(episodes.count > 1 ? "s" : "")")
     }
 }
 
@@ -328,7 +384,7 @@ struct EpisodeRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            EpisodeArt(episode: episode, side: 56)
+            EpisodeArt(episode: episode, side: 56 * tvScale)
             VStack(alignment: .leading, spacing: 3) {
                 HStack {
                     Text(episode.name ?? EpisodeDates.long.string(from: episode.date))
@@ -406,7 +462,7 @@ struct SearchPage: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .pageEdges()
         .navigationTitle("Recherche")
-        .navigationSubtitle(model.searchText)
+        .pageSubtitle(model.searchText)
     }
 
     @ViewBuilder private func group(_ title: String, kind: SegmentKind, in works: [Work]) -> some View {

@@ -113,9 +113,9 @@ final class AppModel {
     }
     /// The pages pushed on top of the sidebar's page.
     var path: [Route] = []
-    /// iPhone: the tab showing, and the pages pushed in the other two tabs (`path` is Accueil's,
-    /// and the only one on the Mac and the iPad).
-    enum PhoneTab: Hashable { case home, shows, search }
+    /// iPhone and Apple TV: the tab showing, and the pages pushed in the other tabs (`path` is Accueil's,
+    /// and the only one on the Mac and the iPad). `playing` is the TV's player, which pushes nothing.
+    enum PhoneTab: Hashable { case home, shows, search, playing }
     var phoneTab: PhoneTab = .home
     var showsPath: [Route] = []
     var searchPath: [Route] = []
@@ -287,7 +287,11 @@ final class AppModel {
     func play(_ episode: Episode, from segment: Segment? = nil) {
         player.play(episode, from: segment)
         lookUpChapters(of: episode)
+        playRequests += 1
     }
+
+    /// Bumped each time something is asked to play: the TV then shows its player.
+    private(set) var playRequests = 0
 
     /// The review someone is looking at, likely to be played next: warm its file on 5heures.be's server,
     /// or read a Dayez file's chapters again.
@@ -302,6 +306,10 @@ final class AppModel {
         case .home: path.append(route)
         case .shows: showsPath.append(route)
         case .search: searchPath.append(route)
+        case .playing:
+            // From the TV's player: the page opens in Accueil, over what was there.
+            phoneTab = .home
+            path.append(route)
         }
     }
 
@@ -311,6 +319,7 @@ final class AppModel {
         case .home: path = []
         case .shows: showsPath = []
         case .search: searchPath = []
+        case .playing: break
         }
     }
 

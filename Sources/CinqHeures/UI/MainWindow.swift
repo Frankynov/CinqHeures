@@ -1,7 +1,11 @@
 import CinqHeuresCore
+#if !os(tvOS)
 import CoreSpotlight
+#endif
 import SwiftUI
 
+#if !os(tvOS)
+/// The Mac and iPad window (tabs on an iPhone). The Apple TV has its own root, TVRoot.
 struct MainWindow: View {
     @Bindable var model: AppModel
     /// The content pane's width, so the player can sit over it alone and not over the sidebar.
@@ -118,6 +122,8 @@ private struct SearchFocus: ViewModifier {
     }
 }
 
+#endif
+
 /// The page a route leads to, wherever it's pushed (the content column, or an iPhone tab).
 struct RoutePage: View {
     let route: Route
@@ -155,13 +161,16 @@ struct AppBehaviors: ViewModifier {
                 Task { await model.refreshFeed() }
             }
             .sheet(isPresented: $model.showsReset) { ResetSheet(model: model) }
+            #if !os(tvOS)
             // A film, series, person or episode picked in Spotlight.
             .onContinueUserActivity(CSSearchableItemActionType) { activity in
                 if let route = SpotlightIndex.route(for: activity) { model.openFromOutside(route) }
             }
+            #endif
     }
 }
 
+#if !os(tvOS)
 struct SidebarView: View {
     @Bindable var model: AppModel
 
@@ -231,6 +240,8 @@ struct SidebarView: View {
     }
 }
 
+#endif
+
 struct SyncStatus: View {
     let model: AppModel
 
@@ -263,8 +274,8 @@ struct SyncStatus: View {
     }
 }
 
-#if os(iOS)
-/// The Mac's "Réinitialiser…" menu item, as a row at the end of the iPad sidebar and the iPhone's Émissions.
+#if !os(macOS)
+/// The Mac's "Réinitialiser…" menu item, as a row at the end of the iPad sidebar and the iPhone's (and the TV's) Émissions.
 struct ResetButton: View {
     let model: AppModel
 
@@ -327,6 +338,9 @@ struct ResetSheet: View {
         .padding(24)
         #if os(macOS)
         .frame(width: 440)
+        #elseif os(tvOS)
+        // A TV sheet is as wide as the page: at the iPad's width the explanations ran a word a line.
+        .frame(width: 1100, alignment: .leading)
         #else
         .frame(maxWidth: 480, alignment: .leading)
         .presentationDetents([.medium, .large])

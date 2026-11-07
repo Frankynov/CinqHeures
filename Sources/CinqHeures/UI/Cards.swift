@@ -145,7 +145,7 @@ struct FilmCard: View {
     let mention: Work.Mention
     let model: AppModel
     /// Fixed in a shelf; `nil` fills the grid cell.
-    var width: CGFloat? = 150
+    var width: CGFloat? = 150 * tvScale
     var passages = 1
     @ViewState private var hovering = false
 
@@ -178,6 +178,7 @@ struct FilmCard: View {
                     }
                 }
                 .shadow(color: .black.opacity(hovering ? 0.35 : 0.18), radius: hovering ? 12 : 5, y: hovering ? 6 : 3)
+                .focusLift()
             Text(segment.displayTitle)
                 .font(.callout.weight(.semibold))
                 .lineLimit(2)
@@ -191,9 +192,16 @@ struct FilmCard: View {
         .frame(maxWidth: width == nil ? .infinity : nil, alignment: .leading)
         .scaleEffect(hovering ? 1.03 : 1)
         .animation(.easeOut(duration: 0.12), value: hovering)
-        .onHover { hovering = $0 }
-        .contentShape(Rectangle())
-        .onTapGesture { model.open(.work(segment.kind, segment.title)) }
+        .pointerHover { hovering = $0 }
+        .cardAction { model.open(.work(segment.kind, segment.title)) }
+        #if os(tvOS)
+        // A long press on the remote: the pointer's play button.
+        .contextMenu {
+            Button { model.play(mention.episode, from: mention.segment) } label: {
+                Label(segment.start == nil ? "Écouter" : "Écouter la critique", systemImage: "play.fill")
+            }
+        }
+        #endif
         // One element: "Song for Marion, 4 étoiles sur 4, 2012, 4 Brins de muguet". Activating it opens
         // the film, as a click does; the play button that hovering shows is an action.
         .accessibilityElement(children: .ignore)
@@ -236,7 +244,7 @@ struct FilmRow: View {
         let wide = wideRows ?? (sizeClass != .compact)
         let source = "\(mention.episode.series.title) · \(EpisodeDates.short.string(from: mention.episode.date))"
         HStack(spacing: 12) {
-            Poster(url: segment.posterURL, width: wide ? 28 : 42)
+            Poster(url: segment.posterURL, width: (wide ? 28 : 42) * tvScale)
             VStack(alignment: .leading, spacing: 2) {
                 Text(segment.displayTitle).font(.headline).lineLimit(typeSize.isAccessibilitySize ? 4 : wide ? 1 : 2)
                 HStack(spacing: 6) {
@@ -288,7 +296,7 @@ struct EpisodeCard: View {
     let episode: Episode
     let resume: Double?
     let model: AppModel
-    var width: CGFloat = 150
+    var width: CGFloat = 150 * tvScale
     @ViewState private var hovering = false
 
     var body: some View {
@@ -316,6 +324,7 @@ struct EpisodeCard: View {
                     }
                 }
                 .shadow(color: .black.opacity(hovering ? 0.35 : 0.18), radius: hovering ? 12 : 5, y: hovering ? 6 : 3)
+                .focusLift()
             Text(episode.name ?? episode.title)
                 .font(.callout.weight(.semibold))
                 .lineLimit(2)
@@ -328,9 +337,8 @@ struct EpisodeCard: View {
         .frame(width: width)
         .scaleEffect(hovering ? 1.03 : 1)
         .animation(.easeOut(duration: 0.12), value: hovering)
-        .onHover { hovering = $0 }
-        .contentShape(Rectangle())
-        .onTapGesture { model.open(.episode(episode.id, highlight: nil)) }
+        .pointerHover { hovering = $0 }
+        .cardAction { model.open(.episode(episode.id, highlight: nil)) }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Spoken.join([Spoken.title(episode),
                                          resume.map { "reprendre à \(Spoken.duration($0))" } ?? Spoken.date(episode.date),
@@ -355,12 +363,12 @@ struct EpisodeCard: View {
 struct ItemCard: View {
     let item: ShelfItem
     let model: AppModel
-    var width: CGFloat? = 150
+    var width: CGFloat? = 150 * tvScale
 
     var body: some View {
         switch item {
         case .passage(let mention): FilmCard(mention: mention, model: model, width: width)
-        case .episode(let episode, let resume): EpisodeCard(episode: episode, resume: resume, model: model, width: width ?? 150)
+        case .episode(let episode, let resume): EpisodeCard(episode: episode, resume: resume, model: model, width: width ?? 150 * tvScale)
         }
     }
 }

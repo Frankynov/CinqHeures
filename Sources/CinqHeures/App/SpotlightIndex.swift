@@ -1,4 +1,11 @@
 import CinqHeuresCore
+#if os(tvOS)
+/// tvOS has no Spotlight: nothing to index.
+enum SpotlightIndex {
+    static func update(_ catalogue: Catalogue) {}
+    static func reset() {}
+}
+#else
 import CoreSpotlight
 import Foundation
 import UniformTypeIdentifiers
@@ -90,3 +97,4 @@ enum SpotlightIndex {
         }
     }
 }
+#endif

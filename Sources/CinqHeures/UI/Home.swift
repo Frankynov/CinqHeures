@@ -9,9 +9,14 @@ struct HomeView: View {
             content
         }
         .pageEdges()
+        #if !os(tvOS)
+        // On the TV the tab already says it, and the title took a band at the top of the page.
         .navigationTitle("Accueil")
-        .navigationSubtitle("\(model.catalogue.episodes.count) épisodes")
+        #endif
+        .pageSubtitle("\(model.catalogue.episodes.count) épisodes")
+        #if !os(tvOS)
         .toolbar { ShuffleToolbarItem(model: model) }
+        #endif
     }
 
     private var content: some View {
@@ -54,6 +59,7 @@ struct HomeView: View {
 /// "Surprenez-moi" next to the search field: an orange capsule, drawn here rather than left to the
 /// toolbar. On macOS 26 the toolbar puts every item in a shared glass capsule and draws buttons in its
 /// own grey style whatever their tint, so the item opts out of that background and draws its own.
+#if !os(tvOS)
 private struct ShuffleToolbarItem: ToolbarContent {
     let model: AppModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -98,13 +104,15 @@ private struct ShuffleToolbarItem: ToolbarContent {
     }
 }
 
+#endif
+
 /// A well-rated review, big, with its poster blurred behind it: play it or open the film.
 struct HeroView: View {
     let mention: Work.Mention
     let model: AppModel
     @Environment(\.horizontalSizeClass) private var sizeClass
     /// The page's side margin: tighter on an iPhone.
-    private var pageMargin: CGFloat { sizeClass == .compact ? 16 : 28 }
+    private var pageMargin: CGFloat { sideMargin(sizeClass) }
 
     var body: some View {
         // Never wider than the page: a page that scrolls centres anything wider, which pushed every
@@ -115,7 +123,7 @@ struct HeroView: View {
             layout(poster: false, compactButtons: true)
             layout(poster: false, compactButtons: true, phone: true)
         }
-        .frame(maxWidth: .infinity, minHeight: 250, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 250 * tvScale, alignment: .leading)
         .background {
             RemoteImage(url: mention.segment.posterURL, pixels: 300) { image in
                 if let image {
@@ -128,6 +136,7 @@ struct HeroView: View {
             .accessibilityHidden(true)
         }
         .task(id: mention.segment.id) { model.warm(mention.episode, at: mention.segment) }
+        .tvFocusSection()
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .padding(.horizontal, pageMargin)
     }
@@ -138,7 +147,7 @@ struct HeroView: View {
         return HStack(spacing: 26) {
             if poster {
                 PosterImage(url: segment.posterURL, corner: 10)
-                    .frame(width: 138)
+                    .frame(width: 138 * tvScale)
                     .shadow(color: .black.opacity(0.5), radius: 12, y: 6)
             }
             VStack(alignment: .leading, spacing: 9) {
@@ -149,7 +158,7 @@ struct HeroView: View {
                     .lineLimit(1).minimumScaleFactor(0.8)
                     .foregroundStyle(.white.opacity(0.7))
                 Text(segment.displayTitle)
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.system(size: 32 * tvScale, weight: .bold))
                     .minimumScaleFactor(0.7)
                     .foregroundStyle(.white)
                     .lineLimit(2)
@@ -223,7 +232,7 @@ struct ShelfRow: View {
     @ViewState private var hovering = false
 
     @Environment(\.horizontalSizeClass) private var sizeClass
-    private var pageMargin: CGFloat { sizeClass == .compact ? 16 : 28 }
+    private var pageMargin: CGFloat { sideMargin(sizeClass) }
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -233,6 +242,7 @@ struct ShelfRow: View {
                         .accessibilityLabel(Spoken.text(title))
                         .accessibilityAddTraits(.isHeader)
                     Spacer()
+                    #if !os(tvOS)
                     if let seeAll {
                         Button { model.open(seeAll) } label: {
                             Text("Tout voir").font(.callout.weight(.semibold))
@@ -240,17 +250,26 @@ struct ShelfRow: View {
                         .buttonStyle(.plain).foregroundStyle(brandOrange)
                         .accessibilityLabel("Tout voir : \(Spoken.text(title))")
                     }
+                    #endif
                 }
                 .padding(.horizontal, pageMargin)
 
                 ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(alignment: .top, spacing: 20) {
+                    LazyHStack(alignment: .top, spacing: 20 * tvScale) {
                         ForEach(items) { item in
                             ItemCard(item: item, model: model).id(item.id)
                         }
+                        #if os(tvOS)
+                        // The focus can't reach a link above the row: "Tout voir" ends the row instead.
+                        if let seeAll { SeeAllCard(title: title) { model.open(seeAll) } }
+                        #endif
                     }
                     .padding(.horizontal, pageMargin).padding(.vertical, 6)
                 }
+                #if os(tvOS)
+                // The focused card grows: it mustn't be cut at the row's edges.
+                .scrollClipDisabled()
+                #endif
                 .overlay(alignment: .leading) {
                     if hovering && first > 0 { chevron("chevron.left") { move(-5, proxy) } }
                 }
@@ -259,7 +278,8 @@ struct ShelfRow: View {
                 }
             }
         }
-        .onHover { hovering = $0 }
+        .pointerHover { hovering = $0 }
+        .tvFocusSection()
     }
 
     private func move(_ delta: Int, _ proxy: ScrollViewProxy) {
@@ -280,6 +300,35 @@ struct ShelfRow: View {
     }
 }
 
+#if os(tvOS)
+/// The end of a shelf on the TV: a poster-sized card that opens the whole list.
+private struct SeeAllCard: View {
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(.quaternary)
+                .aspectRatio(2.0 / 3.0, contentMode: .fit)
+                .overlay {
+                    VStack(spacing: 14) {
+                        Image(systemName: "square.grid.3x3.fill").font(.system(size: 54))
+                        Text("Tout voir").font(.callout.weight(.semibold))
+                    }
+                    .foregroundStyle(brandOrange)
+                }
+                .focusLift()
+        }
+        .frame(width: 150 * tvScale)
+        .cardAction(action)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Tout voir : \(Spoken.text(title))")
+        .accessibilityAddTraits(.isButton)
+    }
+}
+#endif
+
 /// Decades as colourful tiles: the archive's way of "Genres".
 struct DecadeRow: View {
     let tiles: [DecadeTile]
@@ -297,23 +346,27 @@ struct DecadeRow: View {
     ]
 
     @Environment(\.horizontalSizeClass) private var sizeClass
-    private var pageMargin: CGFloat { sizeClass == .compact ? 16 : 28 }
+    private var pageMargin: CGFloat { sideMargin(sizeClass) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Explorer par époque").font(.title2.weight(.bold)).padding(.horizontal, pageMargin)
                 .accessibilityAddTraits(.isHeader)
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 18) {
+                LazyHStack(spacing: 18 * tvScale) {
                     ForEach(Array(tiles.enumerated()), id: \.element.id) { index, tile in
                         DecadeTileView(tile: tile, colors: Self.palette[index % Self.palette.count])
-                            .onTapGesture { model.open(.listing(.decade(tile.decade))) }
+                            .cardAction { model.open(.listing(.decade(tile.decade))) }
                             .accessibilityAction { model.open(.listing(.decade(tile.decade))) }
                     }
                 }
                 .padding(.horizontal, pageMargin).padding(.vertical, 6)
             }
+            #if os(tvOS)
+            .scrollClipDisabled()
+            #endif
         }
+        .tvFocusSection()
     }
 }
 
@@ -326,10 +379,10 @@ private struct DecadeTileView: View {
         ZStack(alignment: .bottomLeading) {
             LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
             // A fan of posters from that decade on the right.
-            HStack(spacing: -34) {
+            HStack(spacing: -34 * tvScale) {
                 ForEach(Array(tile.posters.enumerated()), id: \.offset) { index, url in
-                    PosterImage(url: url, pixels: 220, corner: 5)
-                        .frame(width: 62)
+                    PosterImage(url: url, pixels: Int(220 * tvScale), corner: 5)
+                        .frame(width: 62 * tvScale)
                         .rotationEffect(.degrees(Double(index - 1) * 7))
                         .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
                 }
@@ -343,13 +396,13 @@ private struct DecadeTileView: View {
             }
             .padding(16)
         }
-        .frame(width: 250, height: 128)
+        .frame(width: 250 * tvScale, height: 128 * tvScale)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .focusLift()
         .shadow(color: .black.opacity(hovering ? 0.3 : 0.12), radius: hovering ? 10 : 4, y: 3)
         .scaleEffect(hovering ? 1.03 : 1)
         .animation(.easeOut(duration: 0.12), value: hovering)
-        .onHover { hovering = $0 }
-        .contentShape(Rectangle())
+        .pointerHover { hovering = $0 }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(tile.title), \(tile.count) films")
         .accessibilityAddTraits(.isButton)
