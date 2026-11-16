@@ -14,6 +14,8 @@
   &nbsp;·&nbsp; macOS 14 ou plus récent &nbsp;·&nbsp; gratuit
 </p>
 
+**Windows :** une version Windows (WinUI 3, C#) se trouve dans [windows/](windows/), avec son propre README.
+
 ![L'accueil de l'app : une critique au hasard, des rangées d'affiches à parcourir, et le lecteur en bas](docs/screenshots/home.png)
 
 ## Ce que fait l'app

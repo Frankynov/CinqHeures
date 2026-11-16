@@ -12,3 +12,7 @@ xcuserdata/
 *.xcuserstate
 # Python bytecode (Tools/)
 __pycache__/
+# Windows port
+windows/**/bin/
+windows/**/obj/
+windows/dist/
