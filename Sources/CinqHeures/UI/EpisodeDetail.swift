@@ -85,11 +85,7 @@ private struct EpisodeContent: View {
                             }
                         }
                         if !episode.summary.isEmpty {
-                            Text(episode.summary)
-                                .font(.callout)
-                                .foregroundStyle(.secondary)
-                                .selectableText()
-                                .fixedSize(horizontal: false, vertical: true)
+                            EpisodeSummary(text: episode.summary)
                         }
                     }
 

@@ -32,16 +32,22 @@ convaincu ? « Une autre ». Et le bouton à la chèvre, *Surprenez-moi*, mélan
 
 **Parcourir.** Par époque (les années 60, les années 80…), par note (des « 4 bonnes doses » aux
 « 0 brigadier »), par émission, ou dans les rangées *À redécouvrir*, *Coups de cœur*, *Séries*,
-*Personnalités*…
+*Personnalités*… Chaque liste se trie par date, par nom, par année de sortie ou par note.
 
-**Chaque épisode et tout son programme.** Les films, séries et invités d'un épisode, avec leur minute.
+**Chaque épisode et tout son programme.** Les films, séries et invités d'un épisode, avec leur minute,
+et son résumé mis en forme : un titre par film, les chansons en liste. Sur la page d'un film, les
+autres films du même épisode.
 Pendant l'écoute, la barre de lecture marque chaque film ; survolez-la pour voir lequel. ⏮ et ⏭ (ou
 les touches multimédia du Mac, un double appui sur les AirPods) passent au film précédent ou suivant.
 
 **Où le regarder.** La page d'un film dit, discrètement, sur quelle plateforme il est disponible en
 Belgique.
 
-**Reprendre où vous en étiez.** *Continuer l'écoute* garde votre place dans chaque épisode.
+**Reprendre où vous en étiez.** *Continuer l'écoute* garde votre place dans chaque épisode ; un appui
+long (ou un clic droit) en retire un. Fermer le lecteur garde aussi votre place.
+
+**S'endormir en écoutant.** La minuterie met en pause dans 15, 30, 45 minutes, une heure, ou à la fin
+du film en cours.
 
 **Vos favoris.** Un cœur sur un épisode, ou dans le lecteur pendant l'écoute, et il vous attend dans
 *Favoris*, dans la barre latérale et sur l'accueil.

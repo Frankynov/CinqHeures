@@ -99,7 +99,7 @@ struct TVEpisodeContent: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 Text(episode.title).font(.title2.weight(.bold))
-                Text(episode.summary).font(.body)
+                SummaryText(text: episode.summary, font: .body)
             }
             .frame(width: 1100, alignment: .leading)
             .padding(40)

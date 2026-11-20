@@ -53,9 +53,11 @@ struct FavoriteButton: View {
 }
 
 /// "Ajouter aux favoris" in an episode row's context menu and, on iPhone and iPad, its swipe actions.
+/// With `forget`, a card of "Continuer l'écoute": its menu can also take it out of there.
 struct FavoriteActions: ViewModifier {
     let episode: Episode
     let favorites: Favorites
+    var forget: (() -> Void)? = nil
 
     func body(content: Content) -> some View {
         let isFavorite = favorites.contains(episode)
@@ -63,7 +65,14 @@ struct FavoriteActions: ViewModifier {
             Label(isFavorite ? "Retirer des favoris" : "Ajouter aux favoris", systemImage: isFavorite ? "heart.slash" : "heart")
         }
         content
-            .contextMenu { action }
+            .contextMenu {
+                action
+                if let forget {
+                    Button(action: forget) {
+                        Label("Retirer de Continuer l'écoute", systemImage: "minus.circle")
+                    }
+                }
+            }
             #if os(iOS)
             .swipeActions(edge: .leading) { action.tint(.pink) }
             #endif

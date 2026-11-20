@@ -106,6 +106,7 @@ struct PlayerBar: View {
                 FullPlayer(player: player, favorites: favorites, openEpisode: { showsFullPlayer = false; open() })
                     .presentationDragIndicator(.visible)
             }
+            .onChange(of: player.episode == nil) { _, closed in if closed { showsFullPlayer = false } }
             #endif
     }
 
@@ -203,6 +204,7 @@ struct PlayerBar: View {
             .tooltip("Vitesse de lecture")
             .accessibilityLabel("Vitesse de lecture")
             .accessibilityValue(Spoken.speed(player.rate))
+            if player.episode != nil { PlayerMenu(player: player) }
         }
     }
 
@@ -880,6 +882,9 @@ struct FullPlayer: View {
                     }
                     .accessibilityLabel("Ouvrir l'épisode")
                     .frame(maxWidth: .infinity)
+                    PlayerMenu(player: player, size: 22)
+                        .frame(minWidth: 44, minHeight: 34)
+                        .frame(maxWidth: .infinity)
                 }
                 .foregroundStyle(brandOrange)
                 .padding(.horizontal, 28)

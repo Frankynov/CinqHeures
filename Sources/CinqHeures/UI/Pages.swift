@@ -200,12 +200,28 @@ struct LayoutSwitch: View {
     }
 }
 
-/// How a listing's titles are ordered: newest passage first, or A to Z; reversed, the other way round.
+/// How a listing's titles are ordered: newest passage first, A to Z, newest film first or best rated
+/// first (like the web app's); reversed, the other way round.
 enum ListingOrder: String, CaseIterable {
-    case date, name
+    case date, name, year, stars
 
-    var title: String { self == .date ? "Date" : "Nom" }
-    var symbol: String { self == .date ? "calendar" : "textformat" }
+    var title: String {
+        switch self {
+        case .date: "Date"
+        case .name: "Nom"
+        case .year: "Année de sortie"
+        case .stars: "Note"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .date: "calendar"
+        case .name: "textformat"
+        case .year: "film"
+        case .stars: "star"
+        }
+    }
 
     /// Points the way the list runs: down for newest or A first, up when reversed.
     func arrow(reversed: Bool) -> String { reversed ? "arrow.up" : "arrow.down" }
@@ -214,10 +230,13 @@ enum ListingOrder: String, CaseIterable {
         switch self {
         case .date: reversed ? "Les plus anciens d'abord" : "Les plus récents d'abord"
         case .name: reversed ? "De Z à A" : "De A à Z"
+        case .year: reversed ? "Les plus anciens d'abord" : "Les plus récents d'abord"
+        case .stars: reversed ? "Les moins bien notés d'abord" : "Les mieux notés d'abord"
         }
     }
 
-    /// Newest first, or A to Z (reversing is the page's business).
+    /// Newest first, A to Z, newest film or best rated first (reversing is the page's business). Ties,
+    /// and titles without a year or a score, go by the date of their passage, newest first.
     func sorted(_ items: [ShelfItem]) -> [ShelfItem] {
         switch self {
         case .date: items.sorted { date($0) > date($1) }
@@ -225,7 +244,16 @@ enum ListingOrder: String, CaseIterable {
         case .name: items.map { (name: name($0), item: $0) }
             .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
             .map { $0.item }
+        case .year: by(items) { year($0) }
+        case .stars: by(items) { stars($0) }
         }
+    }
+
+    /// Highest `value` first, those without one last, the newest passage first among equals.
+    private func by(_ items: [ShelfItem], _ value: (ShelfItem) -> Int?) -> [ShelfItem] {
+        items.map { (value: value($0) ?? .min, date: date($0), item: $0) }
+            .sorted { $0.value != $1.value ? $0.value > $1.value : $0.date > $1.date }
+            .map { $0.item }
     }
 
     private func date(_ item: ShelfItem) -> Date {
@@ -239,6 +267,20 @@ enum ListingOrder: String, CaseIterable {
         switch item {
         case .passage(let mention): mention.segment.displayTitle
         case .episode(let episode, _): episode.name ?? episode.title
+        }
+    }
+
+    private func year(_ item: ShelfItem) -> Int? {
+        switch item {
+        case .passage(let mention): mention.segment.year
+        case .episode(let episode, _): episode.year
+        }
+    }
+
+    private func stars(_ item: ShelfItem) -> Int? {
+        switch item {
+        case .passage(let mention): mention.segment.stars
+        case .episode: nil
         }
     }
 }

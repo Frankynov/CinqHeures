@@ -52,6 +52,15 @@ final class PlayerModel {
     }
 
     static let speeds: [Float] = [0.8, 1, 1.15, 1.25, 1.5, 1.75, 2]
+
+    /// The sleep timer: playback pauses at a time, or when the passage playing ends.
+    enum SleepTimer: Equatable {
+        case at(Date)
+        case endOfPassage
+    }
+    private(set) var sleepTimer: SleepTimer?
+    private var sleepTask: Task<Void, Never>?
+    static let sleepMinutes = [15, 30, 45, 60]
     static let jump: Double = 15
 
     private let player = AVPlayer()
@@ -119,8 +128,16 @@ final class PlayerModel {
         updateNowPlaying()
     }
 
+    /// Closes the player: where the episode was left is kept, as when pausing it.
+    func close() {
+        if isPlaying { player.pause(); isPlaying = false }
+        save()
+        stop()
+    }
+
     /// Stops and unloads whatever is playing (the player bar goes back to "Rien en lecture").
     func stop() {
+        setSleepTimer(nil)
         loadTask?.cancel()
         generation += 1
         player.pause()
@@ -271,6 +288,34 @@ final class PlayerModel {
 
     func skip(by seconds: Double) { seek(to: currentTime + seconds) }
 
+    // MARK: Sleep timer
+
+    /// Pauses in `minutes` (nil: no timer). The time runs whether or not the episode is playing.
+    func setSleepTimer(minutes: Int?) {
+        setSleepTimer(minutes.map { .at(Date().addingTimeInterval(Double($0) * 60)) })
+    }
+
+    func setSleepTimer(_ timer: SleepTimer?) {
+        sleepTask?.cancel()
+        sleepTask = nil
+        sleepTimer = timer
+        guard case .at(let date) = timer else { return }
+        sleepTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(max(0, date.timeIntervalSinceNow)))
+            guard !Task.isCancelled, let self else { return }
+            self.sleepTimer = nil
+            if self.isPlaying { self.togglePlayPause() }
+        }
+    }
+
+    /// With the timer set to the end of the passage: pauses just before the next passage starts.
+    private func checkPassageEnd(at seconds: Double) {
+        guard sleepTimer == .endOfPassage, isPlaying,
+              let next = marks.first(where: { $0 > seconds + 0.01 }), next - seconds < 0.6 else { return }
+        sleepTimer = nil
+        togglePlayPause()
+    }
+
     // MARK: Passages
 
     /// Where the episode's passages start (films, series, people, asides): the marks on the bar.
@@ -348,6 +393,7 @@ final class PlayerModel {
             requestedSegment = nil
         }
         if isPlaying, seconds - lastSaved > 5 || seconds < lastSaved { save() }
+        checkPassageEnd(at: seconds)
     }
 
     /// If playback is stuck for no reason the loader knows about (it reports a slow server itself),
@@ -382,6 +428,8 @@ final class PlayerModel {
             MainActor.assumeIsolated {
                 guard let self else { return }
                 self.isPlaying = false
+                // A timer set for the end of the last passage has done its job.
+                if self.sleepTimer == .endOfPassage { self.setSleepTimer(nil) }
                 self.forget()
                 self.updateNowPlaying()
             }
@@ -447,6 +495,18 @@ final class PlayerModel {
             UserDefaults.standard.removeObject(forKey: key)
         }
         lastSaved = 0
+        shelfState = nil
+        progressRevision += 1
+    }
+
+    /// Takes one episode out of "Continuer l'écoute" (and closes it, if it's the one in the player).
+    func forgetProgress(of episode: Episode) {
+        if self.episode?.id == episode.id { stop() }
+        for key in [Self.positionsKey, Self.datesKey] {
+            var values = UserDefaults.standard.dictionary(forKey: key) as? [String: Double] ?? [:]
+            values[String(episode.id)] = nil
+            UserDefaults.standard.set(values, forKey: key)
+        }
         shelfState = nil
         progressRevision += 1
     }

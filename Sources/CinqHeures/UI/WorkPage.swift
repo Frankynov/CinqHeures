@@ -47,7 +47,7 @@ struct WorkPage: View {
                     }
 
                     VStack(alignment: .leading, spacing: 12) {
-                        Text(work.mentions.count > 1 ? "Les passages" : "Le passage").font(.title2.weight(.bold))
+                        Text(work.mentions.count > 1 ? "Évoqué \(work.mentions.count) fois" : "Le passage").font(.title2.weight(.bold))
                             .accessibilityAddTraits(.isHeader)
                         // On the TV, a single passage's own play button did what "Écouter la critique"
                         // just above does: the row keeps only the episode's button.
@@ -133,7 +133,9 @@ struct WorkPage: View {
             Button {
                 model.play(latest.episode, from: latest.segment)
             } label: {
-                Label("Écouter la critique", systemImage: "play.fill")
+                // Where it starts, and for a person "la rencontre": they're interviewed, not reviewed.
+                Label((kind == .person ? "Écouter la rencontre" : "Écouter la critique")
+                      + (latest.segment.start.map { $0 > 0 ? " · \(clock($0))" : "" } ?? ""), systemImage: "play.fill")
                     .padding(.horizontal, 6)
                     .frame(maxWidth: compact ? .infinity : nil)
                     .orangeButtonLabel()
@@ -197,7 +199,34 @@ private struct PassageRow: View {
 
     var body: some View {
         let segment = mention.segment
-        HStack(spacing: compact ? 10 : 14) {
+        // The other films, series and people of that episode, as the web app shows them: a way on to
+        // what was discussed alongside.
+        let others = mention.episode.subjects.filter { !($0.kind == segment.kind && $0.title == segment.title) }
+        VStack(alignment: .leading, spacing: compact ? 10 : 12) {
+            row
+            if !others.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Aussi dans cet épisode").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                        .accessibilityAddTraits(.isHeader)
+                    ScrollView(.horizontal) {
+                        HStack(alignment: .top, spacing: 14 * tvScale) {
+                            ForEach(others) { other in OtherSubject(segment: other, model: model) }
+                        }
+                        .padding(.vertical, tvScale > 1 ? 12 : 0)
+                    }
+                    .scrollIndicators(.hidden)
+                    .scrollClipDisabled()
+                }
+                .tvFocusSection()
+            }
+        }
+        .padding(compact ? 10 : 12)
+        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var row: some View {
+        let segment = mention.segment
+        return HStack(spacing: compact ? 10 : 14) {
             EpisodeArt(episode: mention.episode, side: (compact ? 44 : 52) * tvScale)
             VStack(alignment: .leading, spacing: 4) {
                 if compact {
@@ -238,8 +267,6 @@ private struct PassageRow: View {
                 .buttonStyle(.borderedProminent).tint(brandOrange)
             }
         }
-        .padding(compact ? 10 : 12)
-        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         // One element: "Podcast, vendredi 27 juin 2025, à 4 minutes et 12 secondes, 3 étoiles sur 4".
         // Activating it plays the passage; the episode's page is an action.
         .accessibilityElement(children: .ignore)
@@ -252,5 +279,31 @@ private struct PassageRow: View {
         .accessibilityActions {
             Button("Ouvrir l'épisode") { model.open(.episode(mention.episode.id, highlight: segment.id)) }
         }
+    }
+}
+
+/// A film, series or person discussed in the same episode as a passage: its poster and name, opening
+/// its page.
+private struct OtherSubject: View {
+    let segment: Segment
+    let model: AppModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            PosterImage(url: segment.posterURL, pixels: 200, corner: 6)
+                .frame(width: 54 * tvScale)
+                .focusLift()
+            Text(segment.displayTitle)
+                .font(.caption2.weight(.medium))
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+        }
+        .frame(width: 76 * tvScale, alignment: .leading)
+        .cardAction { model.open(.work(segment.kind, segment.title)) }
+        .tooltip(segment.displayTitle)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Spoken.join([segment.displayTitle, segment.stars.map(Spoken.stars)]))
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { model.open(.work(segment.kind, segment.title)) }
     }
 }

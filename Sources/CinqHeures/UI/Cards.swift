@@ -346,7 +346,12 @@ struct EpisodeCard: View {
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { model.open(.episode(episode.id, highlight: nil)) }
         .accessibilityAction(named: resume == nil ? "Écouter" : "Reprendre l'écoute") { model.play(episode) }
-        .modifier(FavoriteActions(episode: episode, favorites: model.favorites))
+        .accessibilityActions {
+            if resume != nil { Button("Retirer de Continuer l'écoute") { model.player.forgetProgress(of: episode) } }
+        }
+        // Only the cards of "Continuer l'écoute" carry where the episode was left.
+        .modifier(FavoriteActions(episode: episode, favorites: model.favorites,
+                                  forget: resume == nil ? nil : { model.player.forgetProgress(of: episode) }))
     }
 
     private var subtitle: String {
