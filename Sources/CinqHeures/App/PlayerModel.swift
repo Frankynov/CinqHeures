@@ -128,13 +128,6 @@ final class PlayerModel {
         updateNowPlaying()
     }
 
-    /// Closes the player: where the episode was left is kept, as when pausing it.
-    func close() {
-        if isPlaying { player.pause(); isPlaying = false }
-        save()
-        stop()
-    }
-
     /// Stops and unloads whatever is playing (the player bar goes back to "Rien en lecture").
     func stop() {
         setSleepTimer(nil)

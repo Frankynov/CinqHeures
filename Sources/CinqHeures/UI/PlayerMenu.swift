@@ -2,9 +2,8 @@ import CinqHeuresCore
 import SwiftUI
 
 #if !os(tvOS)
-/// The player's "…": the sleep timer, and closing the player (where the episode was left is kept).
-/// One menu rather than two more buttons, which squeezed the title in the iPad's bar. With a timer
-/// set it shows a moon, so the timer can be seen without opening it.
+/// The sleep timer: a moon in the player, filled while a timer runs. (Closing the player, which the
+/// web app has, was left out here: one more thing to wonder about in a bar that's always there.)
 struct PlayerMenu: View {
     let player: PlayerModel
     var size: CGFloat = 17
@@ -20,25 +19,21 @@ struct PlayerMenu: View {
                     timerButton("À la fin du passage", timer: .endOfPassage, checked: player.sleepTimer == .endOfPassage)
                 }
             }
-            Divider()
-            Button { player.close() } label: {
-                Label("Fermer le lecteur", systemImage: "xmark")
-            }
         } label: {
             label
         }
         .borderlessMenu()
         .fixedSize()
-        .tooltip(player.sleepTimer == nil ? "Minuterie, fermer le lecteur" : "Minuterie de veille")
-        .accessibilityLabel("Autres options du lecteur")
+        .tooltip("Minuterie de veille")
+        .accessibilityLabel("Minuterie de veille")
         .accessibilityValue(spokenTimer)
     }
 
     /// The moon alone: with the minutes beside it, the title in the iPad's bar was cut to a few letters.
     /// The minutes left head the menu.
     private var label: some View {
-        Image(systemName: player.sleepTimer == nil ? "ellipsis.circle" : "moon.fill")
-            .font(.system(size: player.sleepTimer == nil ? size : size * 0.9, weight: .medium))
+        Image(systemName: player.sleepTimer == nil ? "moon" : "moon.fill")
+            .font(.system(size: size * 0.9, weight: .medium))
             .foregroundStyle(brandOrange)
             .contentTransition(.symbolEffect(.replace))
     }

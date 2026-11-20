@@ -169,8 +169,6 @@ private struct MiniPlayer: View {
             FullPlayer(player: player, favorites: favorites, openEpisode: { showsFullPlayer = false; openEpisode() })
                 .presentationDragIndicator(.visible)
         }
-        // "Fermer le lecteur" in the full player: nothing left to show in it.
-        .onChange(of: player.episode == nil) { _, closed in if closed { showsFullPlayer = false } }
         .modifier(PlaybackAnnouncements(player: player))
         // The accessory's height is the system's: past this size the title and show were cut off.
         // A tap opens the full player, which takes any size.

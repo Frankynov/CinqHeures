@@ -44,7 +44,7 @@ les touches multimédia du Mac, un double appui sur les AirPods) passent au film
 Belgique.
 
 **Reprendre où vous en étiez.** *Continuer l'écoute* garde votre place dans chaque épisode ; un appui
-long (ou un clic droit) en retire un. Fermer le lecteur garde aussi votre place.
+long (ou un clic droit) en retire un.
 
 **S'endormir en écoutant.** La minuterie met en pause dans 15, 30, 45 minutes, une heure, ou à la fin
 du film en cours.

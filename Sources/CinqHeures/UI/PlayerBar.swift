@@ -106,7 +106,6 @@ struct PlayerBar: View {
                 FullPlayer(player: player, favorites: favorites, openEpisode: { showsFullPlayer = false; open() })
                     .presentationDragIndicator(.visible)
             }
-            .onChange(of: player.episode == nil) { _, closed in if closed { showsFullPlayer = false } }
             #endif
     }
 
