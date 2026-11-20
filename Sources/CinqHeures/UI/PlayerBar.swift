@@ -698,7 +698,9 @@ struct SlowServerNote: View {
             .labelStyle(.iconOnly)
             .buttonStyle(.borderless)
             .help("Pourquoi c'est long ?")
-            .popover(isPresented: $showsExplanation, arrowEdge: .top) {
+            // Above the note: the bar sits at the bottom of the window. On iPad the edge is the arrow's
+            // side of the popover, so .top opened it downward, squashed against the screen's edge.
+            .popover(isPresented: $showsExplanation, arrowEdge: Self.arrowEdge) {
                 SlowServerExplanation(retry: { player.retry(); showsExplanation = false })
             }
         }
@@ -706,6 +708,12 @@ struct SlowServerNote: View {
         .foregroundStyle(.orange)
         .lineLimit(1)
     }
+
+    #if os(macOS)
+    private static let arrowEdge = Edge.top
+    #else
+    private static let arrowEdge = Edge.bottom
+    #endif
 }
 
 /// What the "Préparation…" wait is about. Its own colours and line limits, not the orange caption
